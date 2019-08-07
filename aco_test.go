@@ -1,8 +1,10 @@
+// Tests for the Ant System Algorithm described in Dorigo et al. 96
 package aco
 
 import (
 	"bufio"
 	"encoding/csv"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -13,6 +15,96 @@ func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+// CheckSolutionValid checks that all Vertices in proglemGraph are visited exactly once.
+func CheckSolutionValid(solution Tour, proglemGraph Graph) error {
+	errMsg := ""
+
+	if len(solution) == 0 {
+		errMsg += "solution is empty"
+	}
+
+	// Check that no pointer is nil
+	solContainsNilPointer := false
+	for vi, v := range solution {
+		if v == nil {
+			solContainsNilPointer = true
+			errMsg += fmt.Sprintf("solution[%d] == nil\n", vi)
+		}
+	}
+
+	if !solContainsNilPointer {
+		// Check that every Vertex is visited exactly once.
+		// Check that all Vertices in solution are really in the problemGraph
+		for vi, v := range solution {
+			for vj := vi + 1; vj < len(solution); vj++ {
+				if v == solution[vj] {
+					errMsg += fmt.Sprintf("Vertex %v appears multiple times in solution\n", *v)
+					break
+				}
+			}
+			vFoundInProblemGraph := false
+			for pgvi := 0; pgvi < len(proglemGraph.Vertices); pgvi++ {
+				if v == &proglemGraph.Vertices[pgvi] {
+					vFoundInProblemGraph = true
+					break
+				}
+			}
+			if !vFoundInProblemGraph {
+				errMsg += fmt.Sprintf("Vertex %v is not in problemGraph\n", *v)
+			}
+		}
+	}
+
+	if errMsg == "" {
+		return nil
+	} else {
+		return fmt.Errorf(errMsg)
+	}
+}
+
+// TestTriangle tests the AS on a triangle graph. The triangle is the most trivial TSP and all ants will find the exact same tour, therefore the AS must terminate due to stagnation behaviour after the first cycle.
+func TestTriangle(t *testing.T) {
+	// create triangle graph
+	triangleGraph := Graph{
+		Vertices: []Vertex{
+			{0, "0"},
+			{1, "1"},
+			{2, "2"},
+		},
+		Edges: [][]Edge{
+			{},
+			{{1, 1, 0}},
+			{{1, 1, 0}, {1, 1, 0}},
+		},
+	}
+
+	// TODO determine parameters
+	var NCmax int = 1000
+	var Q float64 = 1
+	var rho float64 = 1
+	var alpha float64 = 1
+	var beta float64 = 1
+	trailUpdateFunc := func(Graph, []Ant) {}
+
+	solution := AntSystemAlgorithm(
+		triangleGraph,
+		len(triangleGraph.Vertices),
+		NCmax,
+		Q,
+		rho,
+		alpha, beta,
+		&trailUpdateFunc,
+	)
+
+	err := CheckSolutionValid(solution, triangleGraph)
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+
+	// TODO check whether AS terminated with stagnation behaviour after exactly 1 cycle
 }
 
 // BenchmarkOliver30 benchmarks AS with the prolem Oliver30 from Dorigo et al. 96 and compares the performance to that stated in the paper.

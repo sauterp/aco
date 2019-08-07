@@ -6,7 +6,7 @@ package aco
 
 import "math"
 
-// Graph holds an undirected and fully connected graph represented as a triangular adjacency matrix. 
+// Graph holds an undirected and fully connected graph represented as a triangular adjacency matrix.
 type Graph struct {
 	Vertices []Vertex
 	// n := len(Vertices)
@@ -25,7 +25,7 @@ type Vertex struct {
 type Edge struct {
 	Length float64
 	// Visibility increases the chance that an Ant takes this Edge. It needs to be precomputed for each Vertex before the Ant System Algorithm is started. Usually Visibility = 1.0 / Length
-	Visibility float64
+	Visibility     float64
 	TrailIntensity float64
 }
 
@@ -35,4 +35,36 @@ func CompEuclid2dDist(aX, aY, bX, bY float64) float64 {
 	abYdist := aY - bY
 	dist := math.Sqrt(abXdist*abXdist + abYdist*abYdist)
 	return dist
+}
+
+type Tour []*Vertex
+
+// Ant holds the state of one ant, the basic agent of this algorithm
+type Ant struct {
+	Position *Vertex
+	Tour     Tour
+	// An ant has to visit all n cities
+	// If an ant has already visited a city we add it to the TabuList and cannot visit it again
+	TabuList []*Vertex
+}
+
+// TODO implement func NewAnt()
+// initialize TabuList with make([]*Vertex, n) or make([]*Vertex, 0, n)
+
+// AntSystemAlgorithm is the main method for initiating the Ant System algorithm
+func AntSystemAlgorithm(
+	problemGraph Graph,
+	nAnts int,
+	NCmax int,
+	// Q is a constant used in the LayTrail function to determine the amount of trail to be spread by each ant.
+	Q float64,
+	// rho is a coefficient such that (1 - rho) represents the evaporation of trail between time t and t+n
+	// The coefficient rho must be set to a value < 1 to avoid unlimited accumulation of trail
+	// In Dorigo96 a <<small>> constant c was used. rho = c
+	rho float64,
+	// alpha and beta control the relative importance of trail versus visibility. (autocataclytic process)
+	alpha, beta float64,
+	trailUpdateFunc *func(Graph, []Ant),
+) (shortestTour Tour) {
+	return Tour{}
 }
