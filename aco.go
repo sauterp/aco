@@ -7,6 +7,7 @@ package aco
 import (
 	"fmt"
 	"math"
+	"math/rand"
 )
 
 // Graph holds an undirected and fully connected graph represented as a triangular adjacency matrix.
@@ -101,17 +102,43 @@ func AntSystemAlgorithm(
 	alpha, beta float64,
 	trailUpdateFunc *func(Graph, []Ant),
 ) (Tour, error) {
+	// TODO is a check for rho > 0 necessary?
+	if rho >= 1 {
+		return nil, fmt.Errorf("rho >= 1.0")
+	}
+
 	err := CheckFullyConnected(problemGraph)
 	if err != nil {
 		return nil, err
 	}
 
 	// compute Visibility of all Edges
+	// set all TrailIntensities to rho
 	for i := range problemGraph.Edges {
 		for j := range problemGraph.Edges[i] {
 			edge := &problemGraph.Edges[i][j]
 			edge.Visibility = 1.0 / edge.Length
+			edge.TrailIntensity = rho
 		}
 	}
+
+
+	// begin the Ant Cycle algorithm
+
+	t := 0
+
+	// set ants on Vertices using a uniform random distribution
+	ants := make([]Ant, 0, nAnts)
+	nVertices := len(problemGraph.Vertices)
+	for i := 0; i < nAnts; i++ {
+		ants = append(ants, Ant{
+			Tour:     make(Tour, 0, nVertices),
+			TabuList: make(Tour, 0, nVertices),
+		})
+		firstPos := &problemGraph.Vertices[rand.Intn(nVertices)]
+		ants[i].Position = firstPos
+		ants[i].TabuList[0] = firstPos
+	}
+
 	return Tour{}, nil
 }
