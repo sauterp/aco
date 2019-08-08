@@ -134,6 +134,15 @@ func (ant *Ant) MoveToNextVertex() {
 	ant.Position = new_pos
 }
 
+// CompTotTourLen computes the total length of this ant's tour
+func CompTotLength(tour Tour) float64 {
+	totLength := 0.0
+	for i := range tour {
+		totLength += tour.Length
+	}
+	return totLength
+}
+
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
 func AntSystemAlgorithm(
 	problemGraph Graph,
