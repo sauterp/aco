@@ -135,12 +135,26 @@ func (ant *Ant) MoveToNextVertex() {
 }
 
 // CompTotTourLen computes the total length of this ant's tour
-func CompTotLength(tour Tour) float64 {
+func CompTotLength(graph Graph, tour Tour) float64 {
 	totLength := 0.0
-	for i := range tour {
-		totLength += tour.Length
+	for i := 0; i < len(tour)-1; i++ {
+		totLength += graph.GetEdge(tour[i].Index, tour[i+1].Index)
 	}
+
+	// The last edge is not explicitly stored in the tour, because it leads back to the first Vertex of the tour.
+	totLength += graph.GetEdge(tour[len(tour) - 1].Index, tour[0].Index)
+
 	return totLength
+}
+
+// LayTrail when ant completes a tour, it lays a substance called trail on each edge visited.
+// This is the main procedure used in the publication, but they also proposed two alternatives LayTrailAntDensity and LayTrailAntQuantity on page 8
+// TODO [#B] This computation needs to be done concurrently without race conditions
+func LayTrail(graph Graph, ant Ant) {
+	L_k = ant.CompTotLength(graph, ant)
+	for i := range ant.TabuList {
+		ant.Tour[i].trail += Q / L_k
+	}
 }
 
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
@@ -156,7 +170,7 @@ func AntSystemAlgorithm(
 	rho float64,
 	// alpha and beta control the relative importance of trail versus visibility. (autocataclytic process)
 	alpha, beta float64,
-	trailUpdateFunc *func(Graph, []Ant),
+	trailUpdateFunc *func(Graph, Ant),
 ) (Tour, error) {
 	// TODO is a check for rho > 0 necessary?
 	if rho >= 1 {
@@ -214,7 +228,9 @@ func AntSystemAlgorithm(
         		wg.Wait()
 
 		// TODO [#A]
-		trailUpdateFunc(problemGraph, ants)
+		for i := range ants {
+			trailUpdateFunc(problemGraph, ants[i])
+		}
 
 		// save the shortestTour found by the ants
 		shortestTour := ants[0].TabuList
