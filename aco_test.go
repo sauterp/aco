@@ -88,7 +88,7 @@ func TestTriangle(t *testing.T) {
 	var beta float64 = 1
 	trailUpdateFunc := func(Graph, []Ant) {}
 
-	solution := AntSystemAlgorithm(
+	solution, err := AntSystemAlgorithm(
 		triangleGraph,
 		len(triangleGraph.Vertices),
 		NCmax,
@@ -97,8 +97,12 @@ func TestTriangle(t *testing.T) {
 		alpha, beta,
 		&trailUpdateFunc,
 	)
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
 
-	err := CheckSolutionValid(solution, triangleGraph)
+	err = CheckSolutionValid(solution, triangleGraph)
 	if err != nil {
 		t.Log(err)
 		t.Fail()

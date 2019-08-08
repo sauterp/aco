@@ -4,7 +4,10 @@
 // IEEE Transactions on Systems, Man, and Cybernetics–Part B, Vol.26, No.1, 1996, pp.1-13
 package aco
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // Graph holds an undirected and fully connected graph represented as a triangular adjacency matrix.
 type Graph struct {
@@ -24,9 +27,9 @@ type Vertex struct {
 // Edge holds one edge of a Graph with Length information
 type Edge struct {
 	Length float64
-	// Visibility increases the chance that an Ant takes this Edge. It needs to be precomputed for each Vertex before the Ant System Algorithm is started. Usually Visibility = 1.0 / Length
-	Visibility     float64
-	TrailIntensity float64
+	// Visibility increases the chance that an Ant takes this Edge. Usually Visibility = 1.0 / Length
+	Visibility     float64 // Will be overwritten by Ant System Algorithm
+	TrailIntensity float64 // Will be overwritten by Ant System Algorithm
 }
 
 // CompEuclid2dDist computes the euclidean distance between two 2 dimensional points a and b.
@@ -51,6 +54,38 @@ type Ant struct {
 // TODO implement func NewAnt()
 // initialize TabuList with make([]*Vertex, n) or make([]*Vertex, 0, n)
 
+// CheckFullyConnected will return non-nil error if graph is not fully connected
+func CheckFullyConnected(graph Graph) error {
+	errMsg := ""
+	nVertices := len(graph.Vertices)
+
+	if len(graph.Edges) != nVertices {
+		errMsg += fmt.Sprintf("graph.Edges does not contain enough columns to act as an adjacency matrix for all nVertices = %d", nVertices)
+	}
+
+	for i := range graph.Edges {
+		col := graph.Edges[i]
+		if len(col) != i {
+			errMsg += fmt.Sprintf("too many edges in column %d; want len(col) == %d; got len(col) == %d", i, i, len(col))
+		}
+		for j := range col {
+			cell := col[j]
+			if cell.Length < 0 {
+				errMsg += fmt.Sprintf("Edges[%d][%d].Length < 0; Edges need to have non-negative Length", i, j)
+			}
+			if cell.Length == 0 {
+				errMsg += fmt.Sprintf("Edges[%d][%d].Length == 0; all Vertices need to be connected", i, j)
+			}
+		}
+	}
+
+	if errMsg != "" {
+		return fmt.Errorf(errMsg)
+	} else {
+		return nil
+	}
+}
+
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
 func AntSystemAlgorithm(
 	problemGraph Graph,
@@ -65,6 +100,10 @@ func AntSystemAlgorithm(
 	// alpha and beta control the relative importance of trail versus visibility. (autocataclytic process)
 	alpha, beta float64,
 	trailUpdateFunc *func(Graph, []Ant),
-) (shortestTour Tour) {
-	return Tour{}
+) (Tour, error) {
+	err := CheckFullyConnected(problemGraph)
+	if err != nil {
+		return nil, err
+	}
+	return Tour{}, nil
 }
