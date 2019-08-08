@@ -105,5 +105,13 @@ func AntSystemAlgorithm(
 	if err != nil {
 		return nil, err
 	}
+
+	// compute Visibility of all Edges
+	for i := range problemGraph.Edges {
+		for j := range problemGraph.Edges[i] {
+			edge := &problemGraph.Edges[i][j]
+			edge.Visibility = 1.0 / edge.Length
+		}
+	}
 	return Tour{}, nil
 }
