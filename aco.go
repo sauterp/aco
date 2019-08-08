@@ -18,6 +18,20 @@ type Graph struct {
 	Edges [][]Edge
 }
 
+// GetEdge retrieves the edge (vi, vj) from graph.Edges where vi and vj are Vertex.Index.
+// GetEdge(vi, vj) == GetEdge(vj, vi)
+func (graph *Graph) GetEdge(vi, vj int) (*Edge, error) {
+	if vi == vj {
+		return nil, fmt.Errorf("vi == vj == %d; graph does not have circular Edges", vi)
+	}
+	if vj < vi {
+		return graph.Edges[vi][vj], nil
+	}
+	if vj > vi {
+		return graph.Edges[vj][vi], nil
+	}
+}
+
 // Vertex holds the integer index used to address the rows in the Graph.Edges matrix and a string Label.
 type Vertex struct {
 	Index int
@@ -46,10 +60,9 @@ type Tour []*Vertex
 // Ant holds the state of one ant, the basic agent of this algorithm
 type Ant struct {
 	Position *Vertex
-	Tour     Tour
 	// An ant has to visit all n cities
 	// If an ant has already visited a city we add it to the TabuList and cannot visit it again
-	TabuList []*Vertex
+	TabuList Tour
 }
 
 // TODO implement func NewAnt()
@@ -85,6 +98,40 @@ func CheckFullyConnected(graph Graph) error {
 	} else {
 		return nil
 	}
+}
+
+// MoveToNextVertex chooses the town to go to with a probability that is a function of the town distance and of the amount of trail present on the connecting edge
+// TODO [#A]
+func (ant *Ant) MoveToNextVertex() {
+	// TODO many of the following computations are parallelizable and many of them can be precomputed
+	normFact := 0.0
+	pos := ant.Position
+	//TODO find a better way to do this
+	for _, v := range graph.Vertices {
+		isInTabuList := false
+		for tv := range ant.TabuList {
+			if tv == v {
+				isInTabuList = true
+				break
+			}
+		}
+		if !isInTabuList {
+			edge = problemGraph.GetEdge(pos, v)
+			normFact += pow(edge.TrailIntensity, alpha) * pow(edge.Visibility, beta)
+		}
+	}
+	transProbs := make([]float64, len(problemGraph.Vertices))
+	for tpi not in ant.TabuList {
+		edge = problemGraph.GetEdge(pos, v)
+		transProb[tpi] := pow(edge.TrailIntensity, alpha) * pow(edge.Visibility, beta) * normFact
+	}
+	// the ant cannot stay in its current position
+	// TODO find a more elegant solution for this
+	transProbs[pos] := 0.0
+	new_pos := // random selection based on transProbs
+	ant.Tour = append(ant.Tour, problemGraph.GetEdge(pos, new_pos))
+	ant.TabuList = append(ant.TabuList, new_pos)
+	ant.Position = new_pos
 }
 
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
@@ -132,13 +179,93 @@ func AntSystemAlgorithm(
 	nVertices := len(problemGraph.Vertices)
 	for i := 0; i < nAnts; i++ {
 		ants = append(ants, Ant{
-			Tour:     make(Tour, 0, nVertices),
 			TabuList: make(Tour, 0, nVertices),
 		})
+		newAnt := &ants[i]
 		firstPos := &problemGraph.Vertices[rand.Intn(nVertices)]
-		ants[i].Position = firstPos
-		ants[i].TabuList[0] = firstPos
+		newAnt.Position = firstPos
+		newAnt.TabuList = append(newAnt.TabuList, firstPos)
 	}
 
-	return Tour{}, nil
+	for _ := range NCmax {
+		// Before computing the trails to be excreted before the next ant-cycle, we need to wait until all goroutines have finished their work.
+		var wg sync.WaitGroup
+		for ai := range ants {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for _ := range problemGraph.Vertices {
+					ants[ai].MoveToNextVertex()
+				}
+				// one ant has finished a tour
+			} ()
+		}
+
+		// Wait until all ants have completed a tour
+        		wg.Wait()
+
+		// TODO [#A]
+		trailUpdateFunc(problemGraph, ants)
+
+		// save the shortestTour found by the ants
+		shortestTour := ants[0].TabuList
+		shortestLength := CompTotLength(shortestTour)
+		for i := 1; i < len(ants); i++ {
+			totLength := CompTotLength(ants[i].TabuList)
+			if totLength < shortestLength {
+				shortestTour := ants[i].TabuList
+			}
+		}
+
+		for i := range ants {
+			// TODO [#A]
+			ants[i].EmptyTabuList()
+		}
+
+		// if all ants did the same tour, abort, stagnation behaviour, no alternative solutions will be explored
+		// to test, whether all ants have found the same tour, we need to make C = (m * (m - 1)) / 2 comparisons between the tours.
+		// the definition of a triangular number is (t * (t + 1)) / 2 now substitute t = m - 1 since we don't need to compare a tour with itself and you will obtain the above number
+		// allocate a buffered channel of C boolean values
+		C := (nAnts * (nAnts - 1)) / 2
+		quit := make(chan struct{})
+		comps := make(chan bool, C)
+		// TODO see whether this loop can be optimized by not creating any goroutines as soon as <-quit
+		for i := 0; i < nAnts; i++ {
+			go func() {
+				for j := i+1; j < nAnts; j++ {
+					go func() {
+                				select {
+                				case <-quit:
+                				        return
+                				default:
+							// if two ants have differing tours, all other comparisons can be aborted
+							// TODO ensure that this comparison really compares both Tours elementwise and not the slice pointers
+							if ants[i].Tour != ants[j].Tour {
+								quit <- struct{}{}
+							} else {
+								comps <- true
+							}
+                				}
+				}
+			} ()
+		}
+
+		// TODO think about whether it makes sense to return information about when stangnation behaviour started
+		stagnationBehaviour := true
+		for comp := comps {
+			if !comp {
+				stagnationBehaviour = false
+				break
+			}
+		}
+		if stagnationBehaviour {
+			return shortestTour, stagnationBehaviour, nil
+		}
+
+		// TODO do we really need to close these channels?
+		close(comps)
+		close(quit)
+	}
+	stagnationBehaviour := false
+	return shortestTour, stagnationBehaviour, nil
 }
