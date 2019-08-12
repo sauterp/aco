@@ -227,7 +227,6 @@ func TestTriangle(t *testing.T) {
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 1
-	trailUpdateFunc := func(Graph, Ant) {}
 
 	solution, stagnationBehaviour, err := AntSystemAlgorithm(
 		triangleGraph,
@@ -236,7 +235,7 @@ func TestTriangle(t *testing.T) {
 		Q,
 		rho,
 		alpha, beta,
-		&trailUpdateFunc,
+		LayTrail,
 	)
 	if err != nil {
 		t.Error(err)
@@ -253,6 +252,8 @@ func TestTriangle(t *testing.T) {
 }
 
 // TestSquare tests the AS on a square graph. The graph consists of four vertices arranged as a square and all of them are connected to eachother. There are exactly three possible tours for this TSP(without visiting any Vertex twice). Two tours involve both diagonals and one involves all boundaries of the square. The boundaries are the optimal solution, since they are shorter than the diagonals. The test expects that AS returns the square boundaries solution.
+// Be aware that this test may fail, if all ants come up with the same non-border solution in a cycle. That would cause stagnation behaviour. Use a large number of ants to avoid make this event unlikely.
+// TODO Convert this to a benchmark?
 func TestSquare(t *testing.T) {
 	// The diagonals of a unit square have length Sqrt(2)
 	sqrt2 := math.Sqrt(2)
@@ -280,17 +281,18 @@ func TestSquare(t *testing.T) {
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 1
-	trailUpdateFunc := func(Graph, Ant) {}
+	var nAnts int = 1000
+	trailUpdateFunc := func(float64, Graph, Ant) {}
 
 	// run AS
 	solution, _, err := AntSystemAlgorithm(
 		squareGraph,
-		len(squareGraph.Vertices),
+		nAnts,
 		NCmax,
 		Q,
 		rho,
 		alpha, beta,
-		&trailUpdateFunc,
+		trailUpdateFunc,
 	)
 	if err != nil {
 		t.Error(err)
@@ -307,7 +309,12 @@ func TestSquare(t *testing.T) {
 	sv := squareGraph.Vertices
 	expectedSol := Tour{&sv[0], &sv[1], &sv[2], &sv[3]}
 	if !EqualTour(solution, expectedSol) {
-		t.Fatalf("want square border edges in solution:\n%v\ngot:\n%v\n", solution, expectedSol)
+		t.Errorf("want square border edges in solution:\n%v\ngot:\n%v\n", solution, expectedSol)
+	}
+
+	solTotLen := CompTotLength(squareGraph, solution)
+	if solTotLen > 4.5 {
+		t.Errorf("want total length ~= 4.0\ngot total length == %f\n", solTotLen)
 	}
 }
 
@@ -364,7 +371,7 @@ func BenchmarkOliver30(b *testing.B) {
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 1
-	trailUpdateFunc := func(Graph, Ant) {}
+	trailUpdateFunc := func(float64, Graph, Ant) {}
 
 	// run AS
 	solution, _, err := AntSystemAlgorithm(
@@ -374,7 +381,7 @@ func BenchmarkOliver30(b *testing.B) {
 		Q,
 		rho,
 		alpha, beta,
-		&trailUpdateFunc,
+		trailUpdateFunc,
 	)
 	if err != nil {
 		b.Error(err)
@@ -385,5 +392,5 @@ func BenchmarkOliver30(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	b.Log(CompTotLength(oliver30Graph, solution))
+	b.Logf("total length: %f", CompTotLength(oliver30Graph, solution))
 }

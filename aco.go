@@ -166,10 +166,12 @@ func CheckFullyConnected(graph Graph) error {
 // MoveToNextVertex chooses the town to go to with a probability that is a function of the town distance and of the amount of trail present on the connecting edge
 // TODO [#A] at the moment it only assigns the next Vertex not in the TabuList
 // TODO [#A] move into AntSystemAlgorithm func and remove graph parameter
-func (ant *Ant) MoveToNextVertex(graph Graph) error {
+func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 	// TODO many of the following computations are parallelizable and many of them can be precomputed
 	// TODO find a better way to do this
-	var newPos *Vertex = nil
+	nVertices := len(graph.Vertices)
+	// TODO the capacity can be optimized based on the number of steps the ant has taken.
+	possVerts := make([]*Vertex, 0, nVertices)
 	for vi := range graph.Vertices {
 		v := &graph.Vertices[vi]
 		isInTabuList := false
@@ -180,12 +182,57 @@ func (ant *Ant) MoveToNextVertex(graph Graph) error {
 			}
 		}
 		if !isInTabuList {
-			newPos = v
+			possVerts = append(possVerts, v)
 		}
 	}
 
-	if newPos == nil {
+	if len(possVerts) == 0 {
 		return fmt.Errorf("all graph.Vertices in TabuList; No new position assigned")
+	}
+
+	// TODO skip to new position if len(possVerts) == 1
+
+	// Generate transition probability dist. for possVerts based on Edge.TrailIntensity and Edge.Visibility.
+	probs := make([]float64, len(possVerts))
+
+	// compute normalization factor of formula (4) on page 6 of Dorigo et al. 96
+	var normFact float64 = 0
+	for pi := range probs {
+		v := possVerts[pi]
+		edge, err := graph.GetEdge(ant.Position.Index, v.Index)
+		if err != nil {
+			// TODO
+			panic(err)
+		}
+		normFact += math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta)
+	}
+
+	// compute transition probabilities
+	for pi := range probs {
+		v := possVerts[pi]
+		edge, err := graph.GetEdge(ant.Position.Index, v.Index)
+		if err != nil {
+			// TODO
+			panic(err)
+		}
+		probs[pi] = math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta) * normFact
+	}
+
+	// sum each element of probs with all preceding elements to get a "ladder"
+	for pi := 1; pi < len(probs); pi++ {
+		probs[pi] += probs[pi-1]
+	}
+
+	// Select random next position based on prob. dist.
+	var newPos *Vertex = nil
+	r := rand.Float64()
+	for pi := 0; pi < len(probs)-1; pi++ {
+		if r < probs[pi] {
+			newPos = possVerts[pi]
+		}
+	}
+	if newPos == nil {
+		newPos = possVerts[len(possVerts)-1]
 	}
 
 	ant.TabuList = append(ant.TabuList, newPos)
@@ -221,18 +268,29 @@ func CompTotLength(graph Graph, tour Tour) float64 {
 // LayTrail when ant completes a tour, it lays a substance called trail on each edge visited.
 // This is the main procedure used in the publication, but they also proposed two alternatives LayTrailAntDensity and LayTrailAntQuantity on page 8
 // TODO [#B] This computation needs to be done concurrently without race conditions
-func LayTrail(graph Graph, ant Ant) {
-	// TODO [#A]
-	/*
-		// TODO [#A] Q needs to be a parameter
-		var Q float64 = 1
-		L_k := CompTotLength(graph, ant.TabuList)
-		for i := range ant.TabuList {
-			ant.TabuList[i].TrailIntensity += Q / L_k
+func LayTrail(Q float64, graph Graph, ant Ant) {
+	L_k := CompTotLength(graph, ant.TabuList)
+	for i := 0; i < len(ant.TabuList)-1; i++ {
+		v := ant.TabuList[i].Index
+		vNext := ant.TabuList[i+1].Index
+		edge, err := graph.GetEdge(v, vNext)
+		if err != nil {
+			// TODO
+			panic(err)
 		}
-	*/
+		edge.TrailIntensity += Q / L_k
+	}
+	firstV := ant.TabuList[0].Index
+	lastV := ant.TabuList[len(ant.TabuList)-1].Index
+	edge, err := graph.GetEdge(firstV, lastV)
+	if err != nil {
+		// TODO
+		panic(err)
+	}
+	edge.TrailIntensity += Q / L_k
 }
 
+// TODO is it possible to make AS reproducible by ensuring the same random Seed is used by each Ant?
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
 func AntSystemAlgorithm(
 	problemGraph Graph,
@@ -246,7 +304,8 @@ func AntSystemAlgorithm(
 	rho float64,
 	// alpha and beta control the relative importance of trail versus visibility. (autocataclytic process)
 	alpha, beta float64,
-	trailUpdateFunc *func(Graph, Ant),
+	// TODO convert func to a type
+	trailUpdateFunc func(float64, Graph, Ant),
 ) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	// TODO is a check for rho > 0 necessary?
 	if rho >= 1 {
@@ -294,7 +353,7 @@ func AntSystemAlgorithm(
 			go func(ant *Ant) {
 				defer wg.Done()
 				for vi := 0; vi < nVertices-1; vi++ {
-					err := ant.MoveToNextVertex(problemGraph)
+					err := ant.MoveToNextVertex(alpha, beta, problemGraph)
 					if err != nil {
 						// TODO
 						panic(err)
@@ -310,7 +369,7 @@ func AntSystemAlgorithm(
 		// TODO [#A]
 		for i := range ants {
 			// TODO clean
-			(*trailUpdateFunc)(problemGraph, ants[i])
+			trailUpdateFunc(Q, problemGraph, ants[i])
 		}
 
 		// save the shortestTour found by the ants
