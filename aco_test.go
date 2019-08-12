@@ -307,7 +307,7 @@ func TestSquare(t *testing.T) {
 	sv := squareGraph.Vertices
 	expectedSol := Tour{&sv[0], &sv[1], &sv[2], &sv[3]}
 	if !EqualTour(solution, expectedSol) {
-		t.Fatalf("want square border edges in solution: %v\ngot: %v\n", solution, expectedSol)
+		t.Fatalf("want square border edges in solution:\n%v\ngot:\n%v\n", solution, expectedSol)
 	}
 }
 
@@ -357,5 +357,33 @@ func BenchmarkOliver30(b *testing.B) {
 
 		cities = append(cities, newCity)
 	}
-	b.Log(oliver30Graph)
+
+	// TODO determine parameters
+	var NCmax int = 1000
+	var Q float64 = 1
+	var rho float64 = 0.5
+	var alpha float64 = 1
+	var beta float64 = 1
+	trailUpdateFunc := func(Graph, Ant) {}
+
+	// run AS
+	solution, _, err := AntSystemAlgorithm(
+		oliver30Graph,
+		len(oliver30Graph.Vertices),
+		NCmax,
+		Q,
+		rho,
+		alpha, beta,
+		&trailUpdateFunc,
+	)
+	if err != nil {
+		b.Error(err)
+	}
+
+	err = CheckSolutionValid(solution, oliver30Graph)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.Log(CompTotLength(oliver30Graph, solution))
 }
