@@ -17,6 +17,53 @@ func check(e error) {
 	}
 }
 
+func TestEqualTour(t *testing.T) {
+	vp := func(ind int) *Vertex {
+		v := new(Vertex)
+		v.Index = ind
+		return v
+	}
+
+	t.Run("SameTour", func(t *testing.T) {
+		a := Tour{vp(0), vp(1), vp(2)}
+		if !EqualTour(a, a) {
+			t.Fail()
+		}
+	})
+
+	t.Run("SameTourDifferentObject", func(t *testing.T) {
+		a := Tour{vp(0), vp(1), vp(2)}
+		b := Tour{a[0], a[1], a[2]}
+		if !EqualTour(a, b) {
+			t.Fail()
+		}
+	})
+
+	t.Run("SameTourDifferentOrder", func(t *testing.T) {
+		a := Tour{vp(0), vp(1), vp(2)}
+		b := Tour{a[1], a[2], a[0]}
+		if !EqualTour(a, b) {
+			t.Fail()
+		}
+	})
+
+	t.Run("DiffTourSameLen", func(t *testing.T) {
+		a := Tour{vp(0), vp(1), vp(2)}
+		b := Tour{a[1], vp(3), a[0]}
+		if EqualTour(a, b) {
+			t.Fail()
+		}
+	})
+
+	t.Run("DiffTourDiffLen", func(t *testing.T) {
+		a := Tour{vp(0), vp(1), vp(2), vp(4)}
+		b := Tour{a[1], vp(3), a[0]}
+		if EqualTour(a, b) {
+			t.Fail()
+		}
+	})
+}
+
 // CheckSolutionValid checks that all Vertices in proglemGraph are visited exactly once.
 func CheckSolutionValid(solution Tour, proglemGraph Graph) error {
 	errMsg := ""
@@ -81,14 +128,14 @@ func TestTriangle(t *testing.T) {
 	}
 
 	// TODO determine parameters
-	var NCmax int = 1000
+	var NCmax int = 1 // check whether AS terminated with stagnation behaviour after exactly 1 cycle
 	var Q float64 = 1
-	var rho float64 = 1
+	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 1
-	trailUpdateFunc := func(Graph, []Ant) {}
+	trailUpdateFunc := func(Graph, Ant) {}
 
-	solution, err := AntSystemAlgorithm(
+	solution, stagnationBehaviour, err := AntSystemAlgorithm(
 		triangleGraph,
 		len(triangleGraph.Vertices),
 		NCmax,
@@ -98,17 +145,17 @@ func TestTriangle(t *testing.T) {
 		&trailUpdateFunc,
 	)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Error(err)
 	}
 
 	err = CheckSolutionValid(solution, triangleGraph)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatal(err)
 	}
 
-	// TODO check whether AS terminated with stagnation behaviour after exactly 1 cycle
+	if !stagnationBehaviour {
+		t.Error("AntSystemAlgorithm should have terminated with stagnationBehaviour == true")
+	}
 }
 
 // BenchmarkOliver30 benchmarks AS with the prolem Oliver30 from Dorigo et al. 96 and compares the performance to that stated in the paper.

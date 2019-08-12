@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sync"
 )
 
 // Graph holds an undirected and fully connected graph represented as a triangular adjacency matrix.
@@ -21,14 +22,15 @@ type Graph struct {
 // GetEdge retrieves the edge (vi, vj) from graph.Edges where vi and vj are Vertex.Index.
 // GetEdge(vi, vj) == GetEdge(vj, vi)
 func (graph *Graph) GetEdge(vi, vj int) (*Edge, error) {
-	if vi == vj {
-		return nil, fmt.Errorf("vi == vj == %d; graph does not have circular Edges", vi)
-	}
-	if vj < vi {
-		return graph.Edges[vi][vj], nil
-	}
-	if vj > vi {
-		return graph.Edges[vj][vi], nil
+	switch {
+	case vi == vj:
+		return nil, fmt.Errorf("vi == vj == %d; graph should not have circular Edges", vi)
+	case vj < vi:
+		return &graph.Edges[vi][vj], nil
+	case vj > vi:
+		return &graph.Edges[vj][vi], nil
+	default:
+		return nil, fmt.Errorf("this error should be impossible; none of the cases vi == vj, vj < vi or vj > vi have evaluated to true")
 	}
 }
 
@@ -57,16 +59,60 @@ func CompEuclid2dDist(aX, aY, bX, bY float64) float64 {
 
 type Tour []*Vertex
 
+// EqualTour returns true if both tours contain the same vertices, in the same order and have the same total number of vertices
+func EqualTour(a, b Tour) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	// check whether a and b contain the same vertices and that they are in the same order
+	// find the first two elements that point to the same Vertex
+	var eqInd int
+	// indicates whether an element pointing to the same Vertex has ben found in each of the list.
+	eqElFound := false
+	for i := 0; i < len(a); i++ {
+		if a[0] == b[i] {
+			eqInd = i
+			eqElFound = true
+			break
+		}
+	}
+	if eqElFound {
+		bOffset := eqInd
+		for i := 0; i < len(a); i++ {
+			// if the last element of b has been reached, continue comparing from the first element onwards
+			if i+bOffset >= len(b) {
+				bOffset = -i
+			}
+			if a[i] != b[i+bOffset] {
+				return false
+			}
+		}
+	} else {
+		return false
+	}
+
+	return true
+}
+
 // Ant holds the state of one ant, the basic agent of this algorithm
 type Ant struct {
 	Position *Vertex
 	// An ant has to visit all n cities
 	// If an ant has already visited a city we add it to the TabuList and cannot visit it again
+	// TODO should Tour be implemented via a (circular) List data structure?
 	TabuList Tour
 }
 
 // TODO implement func NewAnt()
 // initialize TabuList with make([]*Vertex, n) or make([]*Vertex, 0, n)
+
+// TODO generalize together with initialization
+// TODO you can probably delete this
+func (ant *Ant) EmptyTabuList() {
+	// TODO ant.TabuList = make(Tour, 0, nVertices)
+	ant.TabuList = make(Tour, 0)
+}
 
 // CheckFullyConnected will return non-nil error if graph is not fully connected
 func CheckFullyConnected(graph Graph) error {
@@ -101,48 +147,56 @@ func CheckFullyConnected(graph Graph) error {
 }
 
 // MoveToNextVertex chooses the town to go to with a probability that is a function of the town distance and of the amount of trail present on the connecting edge
-// TODO [#A]
-func (ant *Ant) MoveToNextVertex() {
+// TODO [#A] at the moment it only assigns the next Vertex not in the TabuList
+// TODO [#A] move into AntSystemAlgorithm func and remove graph parameter
+func (ant *Ant) MoveToNextVertex(graph Graph) error {
 	// TODO many of the following computations are parallelizable and many of them can be precomputed
-	normFact := 0.0
-	pos := ant.Position
-	//TODO find a better way to do this
-	for _, v := range graph.Vertices {
+	// TODO find a better way to do this
+	var newPos *Vertex = nil
+	for vi := range graph.Vertices {
+		v := &graph.Vertices[vi]
 		isInTabuList := false
-		for tv := range ant.TabuList {
+		for _, tv := range ant.TabuList {
 			if tv == v {
 				isInTabuList = true
 				break
 			}
 		}
 		if !isInTabuList {
-			edge = problemGraph.GetEdge(pos, v)
-			normFact += pow(edge.TrailIntensity, alpha) * pow(edge.Visibility, beta)
+			newPos = v
 		}
 	}
-	transProbs := make([]float64, len(problemGraph.Vertices))
-	for tpi not in ant.TabuList {
-		edge = problemGraph.GetEdge(pos, v)
-		transProb[tpi] := pow(edge.TrailIntensity, alpha) * pow(edge.Visibility, beta) * normFact
+
+	if newPos == nil {
+		return fmt.Errorf("all graph.Vertices in TabuList; No new position assigned")
 	}
-	// the ant cannot stay in its current position
-	// TODO find a more elegant solution for this
-	transProbs[pos] := 0.0
-	new_pos := // random selection based on transProbs
-	ant.Tour = append(ant.Tour, problemGraph.GetEdge(pos, new_pos))
-	ant.TabuList = append(ant.TabuList, new_pos)
-	ant.Position = new_pos
+
+	ant.TabuList = append(ant.TabuList, newPos)
+	ant.Position = newPos
+
+	return nil
 }
 
 // CompTotTourLen computes the total length of this ant's tour
 func CompTotLength(graph Graph, tour Tour) float64 {
 	totLength := 0.0
 	for i := 0; i < len(tour)-1; i++ {
-		totLength += graph.GetEdge(tour[i].Index, tour[i+1].Index)
+		edge, err := graph.GetEdge(tour[i].Index, tour[i+1].Index)
+		if err != nil {
+			// TODO
+			panic(err)
+		}
+		totLength += edge.Length
 	}
 
+	// TODO [#A] Do we need to add this for incomplete Tours?
 	// The last edge is not explicitly stored in the tour, because it leads back to the first Vertex of the tour.
-	totLength += graph.GetEdge(tour[len(tour) - 1].Index, tour[0].Index)
+	edge, err := graph.GetEdge(tour[len(tour)-1].Index, tour[0].Index)
+	if err != nil {
+		// TODO
+		panic(err)
+	}
+	totLength += edge.Length
 
 	return totLength
 }
@@ -151,10 +205,15 @@ func CompTotLength(graph Graph, tour Tour) float64 {
 // This is the main procedure used in the publication, but they also proposed two alternatives LayTrailAntDensity and LayTrailAntQuantity on page 8
 // TODO [#B] This computation needs to be done concurrently without race conditions
 func LayTrail(graph Graph, ant Ant) {
-	L_k = ant.CompTotLength(graph, ant)
-	for i := range ant.TabuList {
-		ant.Tour[i].trail += Q / L_k
-	}
+	// TODO [#A]
+	/*
+		// TODO [#A] Q needs to be a parameter
+		var Q float64 = 1
+		L_k := CompTotLength(graph, ant.TabuList)
+		for i := range ant.TabuList {
+			ant.TabuList[i].TrailIntensity += Q / L_k
+		}
+	*/
 }
 
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
@@ -171,15 +230,15 @@ func AntSystemAlgorithm(
 	// alpha and beta control the relative importance of trail versus visibility. (autocataclytic process)
 	alpha, beta float64,
 	trailUpdateFunc *func(Graph, Ant),
-) (Tour, error) {
+) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	// TODO is a check for rho > 0 necessary?
 	if rho >= 1 {
-		return nil, fmt.Errorf("rho >= 1.0")
+		return nil, false, fmt.Errorf("rho >= 1.0")
 	}
 
-	err := CheckFullyConnected(problemGraph)
+	err = CheckFullyConnected(problemGraph)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// compute Visibility of all Edges
@@ -192,105 +251,83 @@ func AntSystemAlgorithm(
 		}
 	}
 
-
 	// begin the Ant Cycle algorithm
 
-	t := 0
+	// TODO [A#]
+	// t := 0
 
-	// set ants on Vertices using a uniform random distribution
-	ants := make([]Ant, 0, nAnts)
-	nVertices := len(problemGraph.Vertices)
-	for i := 0; i < nAnts; i++ {
-		ants = append(ants, Ant{
-			TabuList: make(Tour, 0, nVertices),
-		})
-		newAnt := &ants[i]
-		firstPos := &problemGraph.Vertices[rand.Intn(nVertices)]
-		newAnt.Position = firstPos
-		newAnt.TabuList = append(newAnt.TabuList, firstPos)
-	}
+	for nc := 0; nc < NCmax; nc++ {
+		// set ants on Vertices using a uniform random distribution
+		ants := make([]Ant, 0, nAnts)
+		nVertices := len(problemGraph.Vertices)
+		for i := 0; i < nAnts; i++ {
+			ants = append(ants, Ant{
+				TabuList: make(Tour, 0, nVertices),
+			})
+			newAnt := &ants[i]
+			firstPos := &problemGraph.Vertices[rand.Intn(nVertices)]
+			newAnt.Position = firstPos
+			newAnt.TabuList = append(newAnt.TabuList, firstPos)
+		}
 
-	for _ := range NCmax {
 		// Before computing the trails to be excreted before the next ant-cycle, we need to wait until all goroutines have finished their work.
 		var wg sync.WaitGroup
 		for ai := range ants {
 			wg.Add(1)
-			go func() {
+			go func(ant *Ant) {
 				defer wg.Done()
-				for _ := range problemGraph.Vertices {
-					ants[ai].MoveToNextVertex()
+				for vi := 0; vi < nVertices-1; vi++ {
+					err := ant.MoveToNextVertex(problemGraph)
+					if err != nil {
+						// TODO
+						panic(err)
+					}
 				}
 				// one ant has finished a tour
-			} ()
+			}(&ants[ai])
 		}
 
 		// Wait until all ants have completed a tour
-        		wg.Wait()
+		wg.Wait()
 
 		// TODO [#A]
 		for i := range ants {
-			trailUpdateFunc(problemGraph, ants[i])
+			// TODO clean
+			(*trailUpdateFunc)(problemGraph, ants[i])
 		}
 
 		// save the shortestTour found by the ants
-		shortestTour := ants[0].TabuList
-		shortestLength := CompTotLength(shortestTour)
+		shortestTour = ants[0].TabuList
+		shortestLength := CompTotLength(problemGraph, shortestTour)
 		for i := 1; i < len(ants); i++ {
-			totLength := CompTotLength(ants[i].TabuList)
+			totLength := CompTotLength(problemGraph, ants[i].TabuList)
 			if totLength < shortestLength {
-				shortestTour := ants[i].TabuList
+				shortestTour = ants[i].TabuList
 			}
-		}
-
-		for i := range ants {
-			// TODO [#A]
-			ants[i].EmptyTabuList()
 		}
 
 		// if all ants did the same tour, abort, stagnation behaviour, no alternative solutions will be explored
-		// to test, whether all ants have found the same tour, we need to make C = (m * (m - 1)) / 2 comparisons between the tours.
-		// the definition of a triangular number is (t * (t + 1)) / 2 now substitute t = m - 1 since we don't need to compare a tour with itself and you will obtain the above number
-		// allocate a buffered channel of C boolean values
-		C := (nAnts * (nAnts - 1)) / 2
-		quit := make(chan struct{})
-		comps := make(chan bool, C)
 		// TODO see whether this loop can be optimized by not creating any goroutines as soon as <-quit
-		for i := 0; i < nAnts; i++ {
-			go func() {
-				for j := i+1; j < nAnts; j++ {
-					go func() {
-                				select {
-                				case <-quit:
-                				        return
-                				default:
-							// if two ants have differing tours, all other comparisons can be aborted
-							// TODO ensure that this comparison really compares both Tours elementwise and not the slice pointers
-							if ants[i].Tour != ants[j].Tour {
-								quit <- struct{}{}
-							} else {
-								comps <- true
-							}
-                				}
-				}
-			} ()
-		}
-
-		// TODO think about whether it makes sense to return information about when stangnation behaviour started
+		// TODO introduce concurrency
 		stagnationBehaviour := true
-		for comp := comps {
-			if !comp {
-				stagnationBehaviour = false
+		for i := 0; i < nAnts; i++ {
+			for j := i + 1; j < nAnts; j++ {
+				// if two ants have differing tours, all other comparisons can be aborted
+				if !EqualTour(ants[i].TabuList, ants[j].TabuList) {
+					stagnationBehaviour = false
+					break
+				}
+			}
+			if !stagnationBehaviour {
 				break
 			}
 		}
+
 		if stagnationBehaviour {
+			// TODO think about whether it makes sense to return information about when stangnation behaviour started
 			return shortestTour, stagnationBehaviour, nil
 		}
-
-		// TODO do we really need to close these channels?
-		close(comps)
-		close(quit)
 	}
-	stagnationBehaviour := false
+	stagnationBehaviour = false
 	return shortestTour, stagnationBehaviour, nil
 }
