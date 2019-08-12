@@ -78,6 +78,7 @@ func EqualTour(a, b Tour) bool {
 		}
 	}
 	if eqElFound {
+		toursForwardEqual := true
 		bOffset := eqInd
 		for i := 0; i < len(a); i++ {
 			// if the last element of b has been reached, continue comparing from the first element onwards
@@ -85,14 +86,30 @@ func EqualTour(a, b Tour) bool {
 				bOffset = -i
 			}
 			if a[i] != b[i+bOffset] {
-				return false
+				toursForwardEqual = false
+				break
 			}
 		}
-	} else {
-		return false
+		if toursForwardEqual {
+			return true
+		} else {
+			// same procedure in reverse
+			toursReverseEqual := true
+			bOffset = eqInd
+			for i := 0; i < len(a); i++ {
+				// if the last element of b has been reached, continue comparing from the first element onwards
+				if bOffset-i < 0 {
+					bOffset = len(a) + bOffset
+				}
+				if a[i] != b[bOffset-i] {
+					toursReverseEqual = false
+					break
+				}
+			}
+			return toursReverseEqual
+		}
 	}
-
-	return true
+	return false
 }
 
 // Ant holds the state of one ant, the basic agent of this algorithm

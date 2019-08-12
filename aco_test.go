@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"testing"
@@ -59,6 +60,25 @@ func TestEqualTour(t *testing.T) {
 		a := Tour{vp(0), vp(1), vp(2), vp(4)}
 		b := Tour{a[1], vp(3), a[0]}
 		if EqualTour(a, b) {
+			t.Fail()
+		}
+	})
+
+	// TODO
+	// Two Tours are equal if their order is in reverse, that is because our problem Graph is undirected.
+	t.Run("SameTourReversed", func(t *testing.T) {
+		a := Tour{vp(0), vp(1), vp(2), vp(3)}
+		b := Tour{a[3], a[2], a[1], a[0]}
+		if !EqualTour(a, b) {
+			t.Fail()
+		}
+	})
+
+	// TODO
+	t.Run("SameTourReversedDiffOrder", func(t *testing.T) {
+		a := Tour{vp(0), vp(1), vp(2), vp(3), vp(4), vp(5)}
+		b := Tour{a[5], a[4], a[3], a[2], a[1], a[0]}
+		if !EqualTour(a, b) {
 			t.Fail()
 		}
 	})
@@ -229,6 +249,65 @@ func TestTriangle(t *testing.T) {
 
 	if !stagnationBehaviour {
 		t.Error("AntSystemAlgorithm should have terminated with stagnationBehaviour == true")
+	}
+}
+
+// TestSquare tests the AS on a square graph. The graph consists of four vertices arranged as a square and all of them are connected to eachother. There are exactly three possible tours for this TSP(without visiting any Vertex twice). Two tours involve both diagonals and one involves all boundaries of the square. The boundaries are the optimal solution, since they are shorter than the diagonals. The test expects that AS returns the square boundaries solution.
+func TestSquare(t *testing.T) {
+	// The diagonals of a unit square have length Sqrt(2)
+	sqrt2 := math.Sqrt(2)
+	invSqrt2 := 1 / sqrt2
+
+	// create square graph
+	squareGraph := Graph{
+		Vertices: []Vertex{
+			{0, "0"},
+			{1, "1"},
+			{2, "2"},
+			{3, "2"},
+		},
+		Edges: [][]Edge{
+			{},
+			{{1, 1, 0}},
+			{{sqrt2, invSqrt2, 0}, {1, 1, 0}},
+			{{1, 1, 0}, {sqrt2, invSqrt2, 0}, {1, 1, 0}},
+		},
+	}
+
+	// TODO determine parameters
+	var NCmax int = 1000
+	var Q float64 = 1
+	var rho float64 = 0.5
+	var alpha float64 = 1
+	var beta float64 = 1
+	trailUpdateFunc := func(Graph, Ant) {}
+
+	// run AS
+	solution, _, err := AntSystemAlgorithm(
+		squareGraph,
+		len(squareGraph.Vertices),
+		NCmax,
+		Q,
+		rho,
+		alpha, beta,
+		&trailUpdateFunc,
+	)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = CheckSolutionValid(solution, squareGraph)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check that AS returns the square boundaries solution.
+	// check that the solution Edges are in the right order.
+	// check that the solution Vertices are never visited twice.
+	sv := squareGraph.Vertices
+	expectedSol := Tour{&sv[0], &sv[1], &sv[2], &sv[3]}
+	if !EqualTour(solution, expectedSol) {
+		t.Fatalf("want square border edges in solution: %v\ngot: %v\n", solution, expectedSol)
 	}
 }
 
