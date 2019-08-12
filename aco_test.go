@@ -111,6 +111,80 @@ func CheckSolutionValid(solution Tour, proglemGraph Graph) error {
 	}
 }
 
+func TestCheckFullyConnected(t *testing.T) {
+	t.Run("OneVertex", func(t *testing.T) {
+		// create triangle graph
+		oneVertexG := Graph{
+			Vertices: []Vertex{
+				{1, "1"},
+			},
+			Edges: [][]Edge{
+				{},
+			},
+		}
+		err := CheckFullyConnected(oneVertexG)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("TwoVerticesNoEdge", func(t *testing.T) {
+		// create triangle graph
+		twoVertG := Graph{
+			Vertices: []Vertex{
+				{0, "0"},
+				{1, "1"},
+			},
+			Edges: [][]Edge{
+				{},
+				{},
+			},
+		}
+		err := CheckFullyConnected(twoVertG)
+		if err == nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("TwoVerticesOneEdge", func(t *testing.T) {
+		// create triangle graph
+		twoVertG := Graph{
+			Vertices: []Vertex{
+				{0, "0"},
+				{1, "1"},
+			},
+			Edges: [][]Edge{
+				{},
+				{{1, 1, 0}},
+			},
+		}
+		err := CheckFullyConnected(twoVertG)
+		if err != nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("ThreeVerticesTwoEdges", func(t *testing.T) {
+		// create triangle graph
+		threeVertG := Graph{
+			Vertices: []Vertex{
+				{0, "0"},
+				{1, "1"},
+				{2, "2"},
+			},
+			Edges: [][]Edge{
+				{},
+				{{1, 1, 0}},
+				{{1, 1, 0}},
+			},
+		}
+		err := CheckFullyConnected(threeVertG)
+		if err == nil {
+			t.Fail()
+		}
+	})
+}
+
 // TestTriangle tests the AS on a triangle graph. The triangle is the most trivial TSP and all ants will find the exact same tour, therefore the AS must terminate due to stagnation behaviour after the first cycle.
 func TestTriangle(t *testing.T) {
 	// create triangle graph
