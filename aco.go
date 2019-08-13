@@ -164,14 +164,12 @@ func CheckFullyConnected(graph Graph) error {
 }
 
 // MoveToNextVertex chooses the town to go to with a probability that is a function of the town distance and of the amount of trail present on the connecting edge
-// TODO [#A] at the moment it only assigns the next Vertex not in the TabuList
 // TODO [#A] move into AntSystemAlgorithm func and remove graph parameter
 func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 	// TODO many of the following computations are parallelizable and many of them can be precomputed
 	// TODO find a better way to do this
 	nVertices := len(graph.Vertices)
-	// TODO the capacity can be optimized based on the number of steps the ant has taken.
-	possVerts := make([]*Vertex, 0, nVertices)
+	possVerts := make([]*Vertex, 0, nVertices-len(ant.TabuList))
 	for vi := range graph.Vertices {
 		v := &graph.Vertices[vi]
 		isInTabuList := false
@@ -191,48 +189,51 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 	}
 
 	// TODO skip to new position if len(possVerts) == 1
-
-	// Generate transition probability dist. for possVerts based on Edge.TrailIntensity and Edge.Visibility.
-	probs := make([]float64, len(possVerts))
-
-	// compute normalization factor of formula (4) on page 6 of Dorigo et al. 96
-	var normFact float64 = 0
-	for pi := range probs {
-		v := possVerts[pi]
-		edge, err := graph.GetEdge(ant.Position.Index, v.Index)
-		if err != nil {
-			// TODO
-			panic(err)
-		}
-		normFact += math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta)
-	}
-
-	// compute transition probabilities
-	for pi := range probs {
-		v := possVerts[pi]
-		edge, err := graph.GetEdge(ant.Position.Index, v.Index)
-		if err != nil {
-			// TODO
-			panic(err)
-		}
-		probs[pi] = math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta) * normFact
-	}
-
-	// sum each element of probs with all preceding elements to get a "ladder"
-	for pi := 1; pi < len(probs); pi++ {
-		probs[pi] += probs[pi-1]
-	}
-
-	// Select random next position based on prob. dist.
 	var newPos *Vertex = nil
-	r := rand.Float64()
-	for pi := 0; pi < len(probs)-1; pi++ {
-		if r < probs[pi] {
-			newPos = possVerts[pi]
+	if len(possVerts) == 1 {
+		newPos = possVerts[0]
+	} else {
+		// Generate transition probability dist. for possVerts based on Edge.TrailIntensity and Edge.Visibility.
+		probs := make([]float64, len(possVerts))
+
+		// compute normalization factor of formula (4) on page 6 of Dorigo et al. 96
+		var normFact float64 = 0
+		for pi := range probs {
+			v := possVerts[pi]
+			edge, err := graph.GetEdge(ant.Position.Index, v.Index)
+			if err != nil {
+				// TODO
+				panic(err)
+			}
+			normFact += math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta)
 		}
-	}
-	if newPos == nil {
-		newPos = possVerts[len(possVerts)-1]
+
+		// compute transition probabilities
+		for pi := range probs {
+			v := possVerts[pi]
+			edge, err := graph.GetEdge(ant.Position.Index, v.Index)
+			if err != nil {
+				// TODO
+				panic(err)
+			}
+			probs[pi] = math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta) * normFact
+		}
+
+		// sum each element of probs with all preceding elements to get a "ladder"
+		for pi := 1; pi < len(probs); pi++ {
+			probs[pi] += probs[pi-1]
+		}
+
+		// Select random next position based on prob. dist.
+		r := rand.Float64()
+		for pi := 0; pi < len(probs)-1; pi++ {
+			if r < probs[pi] {
+				newPos = possVerts[pi]
+			}
+		}
+		if newPos == nil {
+			newPos = possVerts[len(possVerts)-1]
+		}
 	}
 
 	ant.TabuList = append(ant.TabuList, newPos)

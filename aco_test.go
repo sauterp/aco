@@ -64,7 +64,6 @@ func TestEqualTour(t *testing.T) {
 		}
 	})
 
-	// TODO
 	// Two Tours are equal if their order is in reverse, that is because our problem Graph is undirected.
 	t.Run("SameTourReversed", func(t *testing.T) {
 		a := Tour{vp(0), vp(1), vp(2), vp(3)}
@@ -74,7 +73,6 @@ func TestEqualTour(t *testing.T) {
 		}
 	})
 
-	// TODO
 	t.Run("SameTourReversedDiffOrder", func(t *testing.T) {
 		a := Tour{vp(0), vp(1), vp(2), vp(3), vp(4), vp(5)}
 		b := Tour{a[5], a[4], a[3], a[2], a[1], a[0]}
@@ -82,6 +80,11 @@ func TestEqualTour(t *testing.T) {
 			t.Fail()
 		}
 	})
+}
+
+// TODO
+func TestMoveToNextVertex(t *testing.T) {
+	t.Fail()
 }
 
 // CheckSolutionValid checks that all Vertices in proglemGraph are visited exactly once.
