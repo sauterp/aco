@@ -119,6 +119,8 @@ type Ant struct {
 	// If an ant has already visited a city we add it to the TabuList and cannot visit it again
 	// TODO should Tour be implemented via a (circular) List data structure?
 	TabuList Tour
+	// replicability
+	Rand *rand.Rand
 }
 
 // TODO implement func NewAnt()
@@ -225,7 +227,7 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 		}
 
 		// Select random next position based on prob. dist.
-		r := rand.Float64()
+		r := ant.Rand.Float64()
 		for pi := 0; pi < len(probs)-1; pi++ {
 			if r < probs[pi] {
 				newPos = possVerts[pi]
@@ -291,7 +293,6 @@ func LayTrail(Q float64, graph Graph, ant Ant) {
 	edge.TrailIntensity += Q / L_k
 }
 
-// TODO is it possible to make AS reproducible by ensuring the same random Seed is used by each Ant?
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
 func AntSystemAlgorithm(
 	problemGraph Graph,
@@ -307,6 +308,7 @@ func AntSystemAlgorithm(
 	alpha, beta float64,
 	// TODO convert func to a type
 	trailUpdateFunc func(float64, Graph, Ant),
+	seed int64,
 ) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	// TODO is a check for rho > 0 necessary?
 	if rho >= 1 {
@@ -330,6 +332,9 @@ func AntSystemAlgorithm(
 
 	// begin the Ant Cycle algorithm
 
+	// replicability
+	rand.Seed(seed)
+
 	// TODO [A#]
 	// t := 0
 
@@ -340,9 +345,11 @@ func AntSystemAlgorithm(
 		for i := 0; i < nAnts; i++ {
 			ants = append(ants, Ant{
 				TabuList: make(Tour, 0, nVertices),
+				// replicability
+				Rand: rand.New(rand.NewSource(rand.Int63())),
 			})
 			newAnt := &ants[i]
-			firstPos := &problemGraph.Vertices[rand.Intn(nVertices)]
+			firstPos := &problemGraph.Vertices[newAnt.Rand.Intn(nVertices)]
 			newAnt.Position = firstPos
 			newAnt.TabuList = append(newAnt.TabuList, firstPos)
 		}
