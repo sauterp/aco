@@ -118,6 +118,7 @@ type Ant struct {
 	// An ant has to visit all n cities
 	// If an ant has already visited a city we add it to the TabuList and cannot visit it again
 	// TODO should Tour be implemented via a (circular) List data structure?
+		// What about loops? how do we terminate a loop looping through a circular list? Elements are unique.
 	TabuList Tour
 }
 
@@ -188,7 +189,6 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 		return fmt.Errorf("all graph.Vertices in TabuList; No new position assigned")
 	}
 
-	// TODO skip to new position if len(possVerts) == 1
 	var newPos *Vertex = nil
 	if len(possVerts) == 1 {
 		newPos = possVerts[0]
@@ -254,7 +254,6 @@ func CompTotLength(graph Graph, tour Tour) float64 {
 		totLength += edge.Length
 	}
 
-	// TODO [#A] Do we need to add this for incomplete Tours?
 	// The last edge is not explicitly stored in the tour, because it leads back to the first Vertex of the tour.
 	edge, err := graph.GetEdge(tour[len(tour)-1].Index, tour[0].Index)
 	if err != nil {
