@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -84,7 +85,6 @@ func TestEqualTour(t *testing.T) {
 
 // TODO
 func TestMoveToNextVertex(t *testing.T) {
-	t.Fail()
 }
 
 // CheckSolutionValid checks that all Vertices in proglemGraph are visited exactly once.
@@ -374,7 +374,7 @@ func BenchmarkOliver30(b *testing.B) {
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 1
-	trailUpdateFunc := func(float64, Graph, Ant) {}
+	trailUpdateFunc := LayTrail
 
 	// run AS
 	solution, _, err := AntSystemAlgorithm(
@@ -396,4 +396,121 @@ func BenchmarkOliver30(b *testing.B) {
 	}
 
 	b.Logf("total length: %f", CompTotLength(oliver30Graph, solution))
+}
+
+// TSPLIB
+// official documentation
+// https://www.iwr.uni-heidelberg.de/groups/comopt/software/TSPLIB95/tsp95.pdf
+
+// nint is the function used by TSPLIB to round to the nearest integer
+func nint(x float64) int {
+	return int(x + 0.5)
+}
+
+func parseTSPLIBProblem(probFilename string) Graph {
+	f, err := os.Open(probFilename)
+	check(err)
+
+	var dimension int
+
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		t := s.Text()
+		ts := strings.Split(t, ":")
+		if strings.TrimSpace(ts[0]) == "DIMENSION" {
+			dimension64, err := strconv.ParseInt(strings.TrimSpace(ts[1]), 10, 32)
+			check(err)
+			dimension = int(dimension64) // TSPLIB doc states that ints have word length 32
+		}
+		if t == "NODE_COORD_SECTION" {
+			break
+		}
+	}
+	err = s.Err()
+	check(err)
+
+	type City struct {
+		X     float64
+		Y     float64
+		Label string
+	}
+	cities := make([]City, 0, 30)
+
+	var g Graph
+	g.Vertices = make([]Vertex, 0, dimension)
+
+	for s.Scan() {
+		t := s.Text()
+		if t == "EOF" {
+			break
+		}
+		record := strings.Fields(t)
+		check(err)
+
+		newX, err := strconv.ParseFloat(record[1], 64)
+		check(err)
+		newY, err := strconv.ParseFloat(record[2], 64)
+		check(err)
+		newCity := City{
+			X:     newX,
+			Y:     newY,
+			Label: record[0],
+		}
+
+		// The first column of the g.Edges 2d array will have length 0 which is correct, since it is an upper triangular matrix and no Vertex has a circular Edge.
+		g.Edges = append(g.Edges, make([]Edge, len(cities)))
+		newVertex := Vertex{
+			Index: len(g.Edges),
+			Label: newCity.Label,
+		}
+		g.Vertices = append(g.Vertices, newVertex)
+		lastEdgeIndex := len(g.Edges) - 1
+		for i := 0; i < len(cities); i++ {
+			g.Edges[lastEdgeIndex][i].Length = float64(nint(CompEuclid2dDist(cities[i].X, cities[i].Y, newCity.X, newCity.Y)))
+		}
+
+		cities = append(cities, newCity)
+	}
+
+	return g
+}
+
+// TestTSPLIB benchmarks the AntSystemAlgorithm with the publicly available dataset TSPLIB:
+// https://www.iwr.uni-heidelberg.de/groups/comopt/software/TSPLIB95/index.html
+// the data can be found in benchmarks/TSPLIB/problems/
+//
+// The problems in TSPLIB are specified in different formats, which all need to be converted into a format suitable for AS.
+func BenchmarkTSPLIB(b *testing.B) {
+	b.Logf("TODO implement")
+	b.Run("a280", func(b *testing.B) {
+		g := parseTSPLIBProblem("testdata/benchmarks/TSPLIB/problems/a280.tsp")
+		// TODO determine parameters
+		var NCmax int = 1000
+		var Q float64 = 1
+		var rho float64 = 0.5
+		var alpha float64 = 1
+		var beta float64 = 1
+		trailUpdateFunc := LayTrail
+
+		// run AS
+		solution, _, err := AntSystemAlgorithm(
+			g,
+			len(g.Vertices),
+			NCmax,
+			Q,
+			rho,
+			alpha, beta,
+			trailUpdateFunc,
+		)
+		if err != nil {
+			b.Error(err)
+		}
+
+		err = CheckSolutionValid(solution, g)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		b.Logf("total length: %f", CompTotLength(g, solution))
+	})
 }
