@@ -412,7 +412,7 @@ func nint(x float64) int {
 
 // ceilInt returns the least integer value greater than or equal to x.
 func ceilInt(f float64) int {
-	ni := nint( f )
+	ni := nint(f)
 	var ci int
 	if float64(ni) < f {
 		ci = ni + 1
@@ -435,8 +435,8 @@ func ceilInt(f float64) int {
 func ATTdist(aX, aY, bX, bY float64) int {
 	xd := aX - bX
 	yd := aY - bY
-	rab := math.Sqrt( (xd*xd + yd*yd) / 10 )
-	dab := ceilInt( rab )
+	rab := math.Sqrt((xd*xd + yd*yd) / 10)
+	dab := ceilInt(rab)
 	return dab
 }
 
@@ -452,7 +452,7 @@ func ATTdist(aX, aY, bX, bY float64) int {
 func EUC2Ddist(aX, aY, bX, bY float64) int {
 	xd := aX - bX
 	yd := aY - bY
-	dab := nint( math.Sqrt(xd*xd + yd*yd) )
+	dab := nint(math.Sqrt(xd*xd + yd*yd))
 	return dab
 }
 
@@ -470,7 +470,7 @@ func EUC3Ddist(aX, aY, aZ, bX, bY, bZ float64) int {
 	xd := aX - bX
 	yd := aY - bY
 	zd := aZ - bZ
-	dab := nint( math.Sqrt(xd*xd + yd*yd + zd*zd) )
+	dab := nint(math.Sqrt(xd*xd + yd*yd + zd*zd))
 	return dab
 }
 
@@ -480,7 +480,7 @@ func EUC3Ddist(aX, aY, aZ, bX, bY, bZ float64) int {
 func CEIL2Ddist(aX, aY, bX, bY float64) int {
 	xd := aX - bX
 	yd := aY - bY
-	dab := ceilInt( math.Sqrt(xd*xd + yd*yd) )
+	dab := ceilInt(math.Sqrt(xd*xd + yd*yd))
 	return dab
 }
 
@@ -492,9 +492,9 @@ func CEIL2Ddist(aX, aY, bX, bY float64) int {
 //     yd = abs( y[i] - y[j] );
 //     dij = nint( xd + yd );
 func MAN2Ddist(aX, aY, bX, bY float64) int {
-	xd := math.Abs( aX - bX )
-	yd := math.Abs( aY - bY )
-	dab := nint( xd + yd )
+	xd := math.Abs(aX - bX)
+	yd := math.Abs(aY - bY)
+	dab := nint(xd + yd)
 	return dab
 }
 
@@ -508,10 +508,10 @@ func MAN2Ddist(aX, aY, bX, bY float64) int {
 //     zd = abs( z[i] - z[j] );
 //     dij = nint( xd + yd + zd );
 func MAN3Ddist(aX, aY, aZ, bX, bY, bZ float64) int {
-	xd := math.Abs( aX - bX )
-	yd := math.Abs( aY - bY )
-	zd := math.Abs( aZ - bZ )
-	dab := nint( xd + yd + zd )
+	xd := math.Abs(aX - bX)
+	yd := math.Abs(aY - bY)
+	zd := math.Abs(aZ - bZ)
+	dab := nint(xd + yd + zd)
 	return dab
 }
 
@@ -522,8 +522,8 @@ func MAN3Ddist(aX, aY, aZ, bX, bY, bZ float64) int {
 //     yd = abs( y[i] - y[j] );
 //     dij = max( nint( xd ), nint( yd ) ) );
 func MAX2Ddist(aX, aY, bX, bY float64) int {
-	xd := nint(math.Abs( aX - bX ))
-	yd := nint(math.Abs( aY - bY ))
+	xd := nint(math.Abs(aX - bX))
+	yd := nint(math.Abs(aY - bY))
 	if xd > yd {
 		return xd
 	} else {
@@ -540,9 +540,9 @@ func MAX2Ddist(aX, aY, bX, bY float64) int {
 //     zd = abs( z[i] - z[j] );
 //     dij = max( nint( xd ), nint( yd ), nint( zd ) );
 func MAX3Ddist(aX, aY, aZ, bX, bY, bZ float64) int {
-	xd := nint(math.Abs( aX - bX ))
-	yd := nint(math.Abs( aY - bY ))
-	zd := nint(math.Abs( aZ - bZ ))
+	xd := nint(math.Abs(aX - bX))
+	yd := nint(math.Abs(aY - bY))
+	zd := nint(math.Abs(aZ - bZ))
 
 	var max int
 	if xd > yd {
@@ -553,7 +553,7 @@ func MAX3Ddist(aX, aY, aZ, bX, bY, bZ float64) int {
 	if zd > max {
 		max = zd
 	}
-	return max	
+	return max
 }
 
 func parseTSPLIBProblem(probFilename string) Graph {
@@ -579,38 +579,38 @@ func parseTSPLIBProblem(probFilename string) Graph {
 		ts := strings.Split(t, ":")
 		fieldName := strings.TrimSpace(ts[0])
 		switch fieldName {
-			case "DIMENSION":
-				dimension64, err := strconv.ParseInt(strings.TrimSpace(ts[1]), 10, 32)
-				check(err)
-				dimension = int(dimension64) // TSPLIB doc states that ints have word length 32
-			case "EDGE_WEIGHT_TYPE":
-				fieldValue := strings.TrimSpace(ts[1])
-				switch fieldValue {
-					case "EUC_2D":
-						dist2DFunc = EUC2Ddist
-						distDim = DistDim2D
-					case "EUC_3D":
-						dist3DFunc = EUC3Ddist
-						distDim = DistDim3D
-					case "CEIL_2D":
-						dist2DFunc = CEIL2Ddist
-						distDim = DistDim2D
-					case "ATT":
-						dist2DFunc = ATTdist
-						distDim = DistDim2D
-					case "MAN_2D":
-						dist2DFunc = MAN2Ddist
-						distDim = DistDim2D
-					case "MAN_3D":
-						dist3DFunc = MAN3Ddist
-						distDim = DistDim3D
-					case "MAX_2D":
-						dist2DFunc = MAX2Ddist
-						distDim = DistDim2D
-					case "MAX_3D":
-						dist3DFunc = MAX3Ddist
-						distDim = DistDim3D
-				}
+		case "DIMENSION":
+			dimension64, err := strconv.ParseInt(strings.TrimSpace(ts[1]), 10, 32)
+			check(err)
+			dimension = int(dimension64) // TSPLIB doc states that ints have word length 32
+		case "EDGE_WEIGHT_TYPE":
+			fieldValue := strings.TrimSpace(ts[1])
+			switch fieldValue {
+			case "EUC_2D":
+				dist2DFunc = EUC2Ddist
+				distDim = DistDim2D
+			case "EUC_3D":
+				dist3DFunc = EUC3Ddist
+				distDim = DistDim3D
+			case "CEIL_2D":
+				dist2DFunc = CEIL2Ddist
+				distDim = DistDim2D
+			case "ATT":
+				dist2DFunc = ATTdist
+				distDim = DistDim2D
+			case "MAN_2D":
+				dist2DFunc = MAN2Ddist
+				distDim = DistDim2D
+			case "MAN_3D":
+				dist3DFunc = MAN3Ddist
+				distDim = DistDim3D
+			case "MAX_2D":
+				dist2DFunc = MAX2Ddist
+				distDim = DistDim2D
+			case "MAX_3D":
+				dist3DFunc = MAX3Ddist
+				distDim = DistDim3D
+			}
 		}
 	}
 	err = s.Err()
@@ -658,7 +658,7 @@ func parseTSPLIBProblem(probFilename string) Graph {
 				newLength = float64(dist2DFunc(cities[i].X, cities[i].Y, newCity.X, newCity.Y))
 			} else if distDim == DistDim3D {
 				// TODO
-				newLength = float64(dist3DFunc(0,0,0,0,0,0))
+				newLength = float64(dist3DFunc(0, 0, 0, 0, 0, 0))
 				panic("parsing of 3D data not implemented")
 			} else {
 				panic(fmt.Sprintf("unknown distDim = %d", distDim))
@@ -681,36 +681,46 @@ func BenchmarkTSPLIB(b *testing.B) {
 	// TSP problems with vertices that are connected but have distance 0 are excluded from our benchmarks:
 	// a280
 
-	b.Logf("TODO implement")
-	b.Run("att48", func(b *testing.B) {
-		g := parseTSPLIBProblem("testdata/benchmarks/TSPLIB/problems/att48.tsp")
-		// TODO determine parameters
-		var NCmax int = 1000
-		var Q float64 = 1
-		var rho float64 = 0.5
-		var alpha float64 = 1
-		var beta float64 = 1
-		trailUpdateFunc := LayTrail
+	benchmarks := []struct {
+		problemName string
+		optimalValue int
+	}{
+		{ "att48", 10628 },
+		// "att532", // takes too long
+	}
 
-		// run AS
-		solution, _, err := AntSystemAlgorithm(
-			g,
-			len(g.Vertices),
-			NCmax,
-			Q,
-			rho,
-			alpha, beta,
-			trailUpdateFunc,
-		)
-		if err != nil {
-			b.Error(err)
-		}
+	for _, bm := range benchmarks {
+		b.Run(bm.problemName, func(b *testing.B) {
+			g := parseTSPLIBProblem("testdata/benchmarks/TSPLIB/problems/" + bm.problemName + ".tsp")
+			// TODO determine parameters
+			var NCmax int = 1000
+			var Q float64 = 1
+			var rho float64 = 0.5
+			var alpha float64 = 1
+			var beta float64 = 1
+			trailUpdateFunc := LayTrail
 
-		err = CheckSolutionValid(solution, g)
-		if err != nil {
-			b.Fatal(err)
-		}
+			// run AS
+			solution, _, err := AntSystemAlgorithm(
+				g,
+				len(g.Vertices),
+				NCmax,
+				Q,
+				rho,
+				alpha, beta,
+				trailUpdateFunc,
+			)
+			if err != nil {
+				b.Error(err)
+			}
 
-		b.Logf("total length: %f", CompTotLength(g, solution))
-	})
+			err = CheckSolutionValid(solution, g)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			b.Logf("total length: %f", CompTotLength(g, solution))
+			b.Logf("known optimal value: %d", bm.optimalValue)
+		})
+	}
 }
