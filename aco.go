@@ -290,7 +290,6 @@ func LayTrail(Q float64, graph Graph, ant Ant) {
 	edge.TrailIntensity += Q / L_k
 }
 
-// TODO is it possible to make AS reproducible by ensuring the same random Seed is used by each Ant?
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
 func AntSystemAlgorithm(
 	problemGraph Graph,
@@ -367,6 +366,15 @@ func AntSystemAlgorithm(
 		wg.Wait()
 
 		// TODO [#A]
+		// TODO ensure this is correct
+		// evaporate trail
+		for i := range problemGraph.Edges {
+			for j := range problemGraph.Edges[i] {
+				edge := &problemGraph.Edges[i][j]
+				edge.TrailIntensity = rho * edge.TrailIntensity
+			}
+		}
+		// lay new trail
 		for i := range ants {
 			// TODO clean
 			trailUpdateFunc(Q, problemGraph, ants[i])
