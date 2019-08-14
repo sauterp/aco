@@ -152,7 +152,7 @@ func CheckFullyConnected(graph Graph) error {
 				errMsg += fmt.Sprintf("Edges[%d][%d].Length < 0; Edges need to have non-negative Length", i, j)
 			}
 			if cell.Length == 0 {
-				errMsg += fmt.Sprintf("Edges[%d][%d].Length == 0; all Vertices need to be connected", i, j)
+				errMsg += fmt.Sprintf("Edges[%d][%d].Length == 0; all Vertices need to be connected; distance zero between vertices not allowed", i, j)
 			}
 		}
 	}
