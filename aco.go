@@ -306,6 +306,10 @@ func AntSystemAlgorithm(
 	// TODO convert func to a type
 	trailUpdateFunc func(float64, Graph, Ant),
 ) (shortestTour Tour, stagnationBehaviour bool, err error) {
+	if len(problemGraph.Vertices) == 0 {
+		return nil, false, fmt.Errorf("problem Graph is empty")
+	}
+
 	if rho >= 1 || rho < 0 {
 		return nil, false, fmt.Errorf("requirement: 0 <= rho < 1")
 	}
