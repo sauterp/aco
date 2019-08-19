@@ -45,6 +45,42 @@ type Vertex struct {
 	Label string
 }
 
+// TODO can this be optimized?
+// GetOutEdges returns a list of pointers to all Edges exiting from Vertex v
+func (v *Vertex) GetOutEdges(g Graph) []*Edge {
+	// since g is fully connected without cyclical Edges, we can expect nVertices - 1 outgoing Edges
+	outEdges := make([]*Edge, 0, len(g.Vertices) - 1)
+
+	for vi := range g.Vertices {
+		vip := &g.Vertices[vi]
+		if vip != v {
+			e, err := g.GetEdge(v.Index, vip.Index)
+			// TODO
+			if err != nil {
+				panic(err)
+			}
+			outEdges = append(outEdges, e)
+		}
+	}
+
+	return outEdges
+}
+
+// Only used by CompNodeBranching
+const epsilon = 0.000001
+
+// CompNodeBranching computes the number of outgoing edges of Vertex v with a TrailIntensity > epsilon
+func (v *Vertex) CompNodeBranching(g Graph) (nodeBranching int) {
+	outEdges := v.GetOutEdges(g)
+	nodeBranching = 0
+	for _, e := range outEdges {
+		if e.TrailIntensity > epsilon {
+			nodeBranching++
+		}
+	}
+	return nodeBranching
+}
+
 // Edge holds one edge of a Graph with Length information
 type Edge struct {
 	Length float64
@@ -353,7 +389,7 @@ func AntSystemAlgorithm(
 		}
 	}()
 
-	nBytesWritten, err := solverLogFile.WriteString("runtime [ns], min tour len, std dev\n")
+	nBytesWritten, err := solverLogFile.WriteString("runtime [ns], min tour len, std dev, avg node branching\n")
 	if err != nil {
 		err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
 		fmt.Println(err)
@@ -447,11 +483,18 @@ func AntSystemAlgorithm(
 		}
 		stdDev = math.Sqrt( stdDev / float64(nTours) )
 
+		var avgNodeBranching float64 = 0
+		for vi := range problemGraph.Vertices {
+			v := &problemGraph.Vertices[vi]
+			avgNodeBranching += float64(v.CompNodeBranching(problemGraph))
+		}
+		avgNodeBranching /= float64(nVertices)
+
 		// TODO compute Estimated Maximum Time until Termination based on Estimated runtime per cycle
 
 		runDur := time.Now().Sub(startTime)
 
-		nBytesWritten, err := solverLogFile.WriteString(fmt.Sprintf("%d,%f,%f\n", runDur.Nanoseconds(), shortestLength, stdDev))
+		nBytesWritten, err := solverLogFile.WriteString(fmt.Sprintf("%d,%f,%f,%f\n", runDur.Nanoseconds(), shortestLength, stdDev, avgNodeBranching))
 		if err != nil {
 			err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
 			fmt.Println(err)
