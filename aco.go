@@ -8,7 +8,11 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
 	"sync"
+	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Graph holds an undirected and fully connected graph represented as a triangular adjacency matrix.
@@ -118,7 +122,7 @@ type Ant struct {
 	// An ant has to visit all n cities
 	// If an ant has already visited a city we add it to the TabuList and cannot visit it again
 	// TODO should Tour be implemented via a (circular) List data structure?
-		// What about loops? how do we terminate a loop looping through a circular list? Elements are unique.
+	// What about loops? how do we terminate a loop looping through a circular list? Elements are unique.
 	TabuList Tour
 }
 
@@ -333,10 +337,34 @@ func AntSystemAlgorithm(
 		}
 	}
 
+	// create file for logging solver progress
+	solverLogFn := "solverlog.csv"
+	solverLogFile, err := os.Create(solverLogFn)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to create solver progress log file: %s", solverLogFn)
+		return nil, false, err
+	}
+	defer func() {
+		err := solverLogFile.Close()
+		if err != nil {
+			// TODO return this errors together with the other return values, wrap the other errors with this one
+			err = errors.Wrapf(err, "failed to close solver progress log file: %s", solverLogFn)
+			fmt.Println(err)
+		}
+	}()
+
+	nBytesWritten, err := solverLogFile.WriteString("runtime [ns], min tour len, std dev\n")
+	if err != nil {
+		err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
+		fmt.Println(err)
+	}
+
 	// begin the Ant Cycle algorithm
 
 	// TODO [A#]
 	// t := 0
+
+	startTime := time.Now()
 
 	for nc := 0; nc < NCmax; nc++ {
 		// set ants on Vertices using a uniform random distribution
@@ -383,17 +411,56 @@ func AntSystemAlgorithm(
 		}
 		// lay new trail
 		for i := range ants {
-			// TODO clean
 			trailUpdateFunc(Q, problemGraph, ants[i])
 		}
 
+		// for computation of standard deviation later
+		tourLengths := make([]float64, len(ants))
+
 		// save the shortestTour found by the ants
-		shortestTour = ants[0].TabuList
+		if nc == 0 {
+			shortestTour = ants[0].TabuList
+		}
 		shortestLength := CompTotLength(problemGraph, shortestTour)
-		for i := 1; i < len(ants); i++ {
+		for i := 0; i < len(ants); i++ {
 			totLength := CompTotLength(problemGraph, ants[i].TabuList)
+
+			tourLengths[i] = totLength
+
 			if totLength < shortestLength {
 				shortestTour = ants[i].TabuList
+				shortestLength = totLength
+			}
+		}
+
+		// compute standard deviation of lengths of all found tours
+		var meanTourLength float64 = 0
+		nTours := len(tourLengths)
+		for i := 0; i < nTours; i++ {
+			meanTourLength += tourLengths[i]
+		}
+		meanTourLength /= float64(nTours)
+		var stdDev float64 = 0
+		for i := 0; i < nTours; i++ {
+			diff := tourLengths[i] - meanTourLength
+			stdDev += diff * diff
+		}
+		stdDev = math.Sqrt( stdDev / float64(nTours) )
+
+		// TODO compute Estimated Maximum Time until Termination based on Estimated runtime per cycle
+
+		runDur := time.Now().Sub(startTime)
+
+		nBytesWritten, err := solverLogFile.WriteString(fmt.Sprintf("%d,%f,%f\n", runDur.Nanoseconds(), shortestLength, stdDev))
+		if err != nil {
+			err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
+			fmt.Println(err)
+		}
+
+		// TODO print at appropriate intervals based on Estimated Maximum Time until Termination
+		for m := 0; m < 1000; m++ {
+			if nc == m*1000 {
+				fmt.Printf("runtime: %dns; min tour len: %f\n", runDur.Nanoseconds(), shortestLength)
 			}
 		}
 
