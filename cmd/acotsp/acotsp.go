@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"bitbucket.org/baobabsoluciones/aco"
+	"bitbucket.org/baobabsoluciones/aco/tsplib"
 )
 
 var (
@@ -21,7 +22,11 @@ func main() {
 		os.Exit(1)
 	} else {
 		// TODO
-		g := aco.Graph{}
+		g, err := tsplib.ParseTSPLIBProblem(*tsp)
+		if err != nil {
+			// TODO
+			panic(err)
+		}
 		s, stagBehv, err := aco.ASBestParams(g)
 		if err != nil {
 			// TODO
