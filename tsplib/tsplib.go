@@ -3,6 +3,19 @@
 // [TSPLIBdoc] https://www.iwr.uni-heidelberg.de/groups/comopt/software/TSPLIB95/tsp95.pdf
 package tsplib
 
+import (
+	"bufio"
+	"fmt"
+	"math"
+	"os"
+	"strconv"
+	"strings"
+
+	"bitbucket.org/baobabsoluciones/aco"
+
+	"github.com/pkg/errors"
+)
+
 // TODO Geographical distance
 // TODO Distance for crystallography problems
 
@@ -157,9 +170,12 @@ func MAX3Ddist(aX, aY, aZ, bX, bY, bZ float64) int {
 	return max
 }
 
-func ParseTSPLIBProblem(probFilename string) Graph {
+// ParseTSPLIBProblem parses a file describing a TSP problem in TSPLIB format
+func ParseTSPLIBProblem(probFilename string) (aco.Graph, error) {
 	f, err := os.Open(probFilename)
-	check(err)
+	if err != nil {
+		return aco.Graph{}, err
+	}
 
 	var dimension int
 	var dist2DFunc func(float64, float64, float64, float64) int
@@ -170,10 +186,13 @@ func ParseTSPLIBProblem(probFilename string) Graph {
 	)
 	var distDim int
 
+	nodeCoordSectionFound := false
+	edgeWeightTypeFound := false
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		t := s.Text()
 		if t == "NODE_COORD_SECTION" {
+			nodeCoordSectionFound = true
 			break
 		}
 
@@ -181,10 +200,18 @@ func ParseTSPLIBProblem(probFilename string) Graph {
 		fieldName := strings.TrimSpace(ts[0])
 		switch fieldName {
 		case "DIMENSION":
-			dimension64, err := strconv.ParseInt(strings.TrimSpace(ts[1]), 10, 32)
-			check(err)
-			dimension = int(dimension64) // TSPLIB doc states that ints have word length 32
+			dimParam := strings.TrimSpace(ts[1])
+			dimension64, err := strconv.ParseInt(dimParam, 10, 32)
+			if err != nil {
+				err = errors.Wrapf(err, "invalid DIMENSION parameter: %s", dimParam)
+				fmt.Println(err)
+				dimension = 0
+			} else {
+				dimension = int(dimension64) // TSPLIB doc states that ints have word length 32
+			}
 		case "EDGE_WEIGHT_TYPE":
+			edgeWeightTypeFound = true
+
 			fieldValue := strings.TrimSpace(ts[1])
 			switch fieldValue {
 			case "EUC_2D":
@@ -215,7 +242,18 @@ func ParseTSPLIBProblem(probFilename string) Graph {
 		}
 	}
 	err = s.Err()
-	check(err)
+	if err != nil {
+		err = errors.Wrapf(err, "error wile parsing %s", probFilename)
+		fmt.Println(err)
+	}
+
+	if !edgeWeightTypeFound {
+		return aco.Graph{}, fmt.Errorf(`field "EDGE_WEIGHT_TYPE" required`)
+	}
+
+	if !nodeCoordSectionFound {
+		return aco.Graph{}, fmt.Errorf(`single line with text: "NODE_COORD_SECTION" not encountered; required to start parsing data`)
+	}
 
 	type City struct {
 		X     float64
@@ -224,8 +262,8 @@ func ParseTSPLIBProblem(probFilename string) Graph {
 	}
 	cities := make([]City, 0, dimension)
 
-	var g Graph
-	g.Vertices = make([]Vertex, 0, dimension)
+	var g aco.Graph
+	g.Vertices = make([]aco.Vertex, 0, dimension)
 
 	for s.Scan() {
 		t := s.Text()
@@ -233,12 +271,17 @@ func ParseTSPLIBProblem(probFilename string) Graph {
 			break
 		}
 		record := strings.Fields(t)
-		check(err)
 
 		newX, err := strconv.ParseFloat(record[1], 64)
-		check(err)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to parse %s as float64", record[1])
+			return g, err
+		}
 		newY, err := strconv.ParseFloat(record[2], 64)
-		check(err)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to parse %s as float64", record[2])
+			return g, err
+		}
 		newCity := City{
 			X:     newX,
 			Y:     newY,
@@ -246,8 +289,8 @@ func ParseTSPLIBProblem(probFilename string) Graph {
 		}
 
 		// The first column of the g.Edges 2d array will have length 0 which is correct, since it is an upper triangular matrix and no Vertex has a circular Edge.
-		g.Edges = append(g.Edges, make([]Edge, len(cities)))
-		newVertex := Vertex{
+		g.Edges = append(g.Edges, make([]aco.Edge, len(cities)))
+		newVertex := aco.Vertex{
 			Index: len(g.Vertices),
 			Label: newCity.Label,
 		}
@@ -270,5 +313,5 @@ func ParseTSPLIBProblem(probFilename string) Graph {
 		cities = append(cities, newCity)
 	}
 
-	return g
+	return g, nil
 }
