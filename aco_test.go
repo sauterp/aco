@@ -238,7 +238,7 @@ func TestTriangle(t *testing.T) {
 		Q,
 		rho,
 		alpha, beta,
-		LayTrail,
+		LayTrailAntCycle,
 	)
 	if err != nil {
 		t.Error(err)
@@ -374,7 +374,7 @@ func BenchmarkOliver30(b *testing.B) {
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 1
-	trailUpdateFunc := LayTrail
+	trailUpdateFunc := LayTrailAntCycle
 
 	// run AS
 	solution, _, err := AntSystemAlgorithm(
@@ -698,7 +698,7 @@ func BenchmarkTSPLIB(b *testing.B) {
 			var rho float64 = 0.5
 			var alpha float64 = 1
 			var beta float64 = 1
-			trailUpdateFunc := LayTrail
+			trailUpdateFunc := LayTrailAntCycle
 
 			// run AS
 			solution, _, err := AntSystemAlgorithm(

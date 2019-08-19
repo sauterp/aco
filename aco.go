@@ -265,10 +265,10 @@ func CompTotLength(graph Graph, tour Tour) float64 {
 	return totLength
 }
 
-// LayTrail when ant completes a tour, it lays a substance called trail on each edge visited.
-// This is the main procedure used in the publication, but they also proposed two alternatives LayTrailAntDensity and LayTrailAntQuantity on page 8
+// LayTrailAntCycle when ant completes a tour, it lays a substance called trail on each edge visited.
+// This is the main procedure used in the publication, referred to as ant-cycle, but they also proposed two alternatives LayTrailAntDensity and LayTrailAntQuantity on page 8
 // TODO [#B] This computation needs to be done concurrently without race conditions
-func LayTrail(Q float64, graph Graph, ant Ant) {
+func LayTrailAntCycle(Q float64, graph Graph, ant Ant) {
 	L_k := CompTotLength(graph, ant.TabuList)
 	for i := 0; i < len(ant.TabuList)-1; i++ {
 		v := ant.TabuList[i].Index
@@ -417,4 +417,17 @@ func AntSystemAlgorithm(
 	}
 	stagnationBehaviour = false
 	return shortestTour, stagnationBehaviour, nil
+}
+
+// ASBestParams calls AntSystemAlgorithm with the best parameters found by Dorigo et al 96. page 9 for the ant-cycle algorithm
+func ASBestParams(problemGraph Graph) (shortestTour Tour, stagnationBehaviour bool, err error) {
+	var nAnts int = len(problemGraph.Vertices)
+	var NCmax int = 5000
+	var Q float64 = 100
+	var rho float64 = 0.5
+	var alpha float64 = 1
+	var beta float64 = 5
+	trailUpdateFunc := LayTrailAntCycle
+
+	return AntSystemAlgorithm(problemGraph, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc)
 }
