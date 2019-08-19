@@ -306,9 +306,12 @@ func AntSystemAlgorithm(
 	// TODO convert func to a type
 	trailUpdateFunc func(float64, Graph, Ant),
 ) (shortestTour Tour, stagnationBehaviour bool, err error) {
-	// TODO is a check for rho > 0 necessary?
-	if rho >= 1 {
-		return nil, false, fmt.Errorf("rho >= 1.0")
+	if rho >= 1 || rho < 0 {
+		return nil, false, fmt.Errorf("requirement: 0 <= rho < 1")
+	}
+
+	if alpha < 0 || beta < 0 {
+		return nil, false, fmt.Errorf("alpha and beta need to be larger or equal to 0")
 	}
 
 	err = CheckFullyConnected(problemGraph)
