@@ -389,7 +389,7 @@ func AntSystemAlgorithm(
 		}
 	}()
 
-	nBytesWritten, err := solverLogFile.WriteString("runtime [ns], min tour len, std dev, avg node branching\n")
+	nBytesWritten, err := solverLogFile.WriteString("cycle, runtime [ns], min tour len, std dev, avg node branching\n")
 	if err != nil {
 		err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
 		fmt.Println(err)
@@ -494,7 +494,7 @@ func AntSystemAlgorithm(
 
 		runDur := time.Now().Sub(startTime)
 
-		nBytesWritten, err := solverLogFile.WriteString(fmt.Sprintf("%d,%f,%f,%f\n", runDur.Nanoseconds(), shortestLength, stdDev, avgNodeBranching))
+		nBytesWritten, err := solverLogFile.WriteString(fmt.Sprintf("%d,%d,%f,%f,%f\n", nc, runDur.Nanoseconds(), shortestLength, stdDev, avgNodeBranching))
 		if err != nil {
 			err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
 			fmt.Println(err)
