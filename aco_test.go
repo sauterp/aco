@@ -9,7 +9,6 @@ import (
 	"math"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -397,57 +396,4 @@ func BenchmarkOliver30(b *testing.B) {
 	}
 
 	b.Logf("total length: %f", CompTotLength(oliver30Graph, solution))
-}
-
-// TestTSPLIB benchmarks the AntSystemAlgorithm with the publicly available dataset TSPLIB:
-// https://www.iwr.uni-heidelberg.de/groups/comopt/software/TSPLIB95/index.html
-// the data can be found in benchmarks/TSPLIB/problems/
-//
-// The problems in TSPLIB are specified in different formats, which all need to be converted into a format suitable for AS.
-func BenchmarkTSPLIB(b *testing.B) {
-	// TSP problems with vertices that are connected but have distance 0 are excluded from our benchmarks:
-	// a280
-
-	benchmarks := []struct {
-		problemName string
-		optimalValue int
-	}{
-		{ "att48", 10628 },
-		// "att532", // takes too long
-	}
-
-	for _, bm := range benchmarks {
-		b.Run(bm.problemName, func(b *testing.B) {
-			g := parseTSPLIBProblem("testdata/benchmarks/TSPLIB/problems/" + bm.problemName + ".tsp")
-			// TODO determine parameters
-			var NCmax int = 1000
-			var Q float64 = 1
-			var rho float64 = 0.5
-			var alpha float64 = 1
-			var beta float64 = 1
-			trailUpdateFunc := LayTrailAntCycle
-
-			// run AS
-			solution, _, err := AntSystemAlgorithm(
-				g,
-				len(g.Vertices),
-				NCmax,
-				Q,
-				rho,
-				alpha, beta,
-				trailUpdateFunc,
-			)
-			if err != nil {
-				b.Error(err)
-			}
-
-			err = CheckSolutionValid(solution, g)
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			b.Logf("total length: %f", CompTotLength(g, solution))
-			b.Logf("known optimal value: %d", bm.optimalValue)
-		})
-	}
 }
