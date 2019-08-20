@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"io"
 	"os"
+	"math/rand"
 
 	"bitbucket.org/baobabsoluciones/aco"
 	"bitbucket.org/baobabsoluciones/aco/tsplib"
@@ -16,10 +17,15 @@ import (
 var (
 	tsp = flag.String("tsp", "", "TSP problem file in TSPLIB format")
 	log = flag.String("log", "", "file where progress should be logged")
+	seed = flag.Int64("seed", 0, "random seed for the algorithm; if 0 or unset a random seed will be generated; same seed and TSP problem will result in the same solution")
 )
 
 func main() {
 	flag.Parse()
+
+	if *seed == 0 {
+		*seed = rand.Int63()
+	}
 
 	var logWriter io.Writer
 
@@ -57,7 +63,7 @@ func main() {
 			// TODO
 			panic(err)
 		}
-		s, stagBehv, err := aco.ASBestParams(g, logWriter)
+		s, stagBehv, err := aco.ASBestParams(g, *seed, logWriter)
 		if err != nil {
 			// TODO
 			panic(err)
