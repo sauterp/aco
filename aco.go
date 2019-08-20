@@ -68,7 +68,7 @@ func (v *Vertex) GetOutEdges(g Graph) []*Edge {
 }
 
 // Only used by CompNodeBranching
-const epsilon = 0.000001
+const epsilon = 0.000000000001
 
 // CompNodeBranching computes the number of outgoing edges of Vertex v with a TrailIntensity > epsilon
 func (v *Vertex) CompNodeBranching(g Graph) (nodeBranching int) {
