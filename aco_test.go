@@ -2,13 +2,9 @@
 package aco
 
 import (
-	"bufio"
-	"encoding/csv"
 	"fmt"
-	"io"
 	"math"
 	"os"
-	"strconv"
 	"testing"
 )
 
@@ -238,6 +234,7 @@ func TestTriangle(t *testing.T) {
 		rho,
 		alpha, beta,
 		LayTrailAntCycle,
+		os.Stdout,
 	)
 	if err != nil {
 		t.Error(err)
@@ -277,24 +274,10 @@ func TestSquare(t *testing.T) {
 		},
 	}
 
-	// TODO determine parameters
-	var NCmax int = 1000
-	var Q float64 = 1
-	var rho float64 = 0.5
-	var alpha float64 = 1
-	var beta float64 = 1
-	var nAnts int = 1000
-	trailUpdateFunc := func(float64, Graph, Ant) {}
-
 	// run AS
-	solution, _, err := AntSystemAlgorithm(
+	solution, _, err := ASBestParams(
 		squareGraph,
-		nAnts,
-		NCmax,
-		Q,
-		rho,
-		alpha, beta,
-		trailUpdateFunc,
+		os.Stdout,
 	)
 	if err != nil {
 		t.Error(err)

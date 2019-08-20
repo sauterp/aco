@@ -5,10 +5,11 @@
 package aco
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
-	"os"
 	"sync"
 	"time"
 
@@ -49,7 +50,7 @@ type Vertex struct {
 // GetOutEdges returns a list of pointers to all Edges exiting from Vertex v
 func (v *Vertex) GetOutEdges(g Graph) []*Edge {
 	// since g is fully connected without cyclical Edges, we can expect nVertices - 1 outgoing Edges
-	outEdges := make([]*Edge, 0, len(g.Vertices) - 1)
+	outEdges := make([]*Edge, 0, len(g.Vertices)-1)
 
 	for vi := range g.Vertices {
 		vip := &g.Vertices[vi]
@@ -345,6 +346,7 @@ func AntSystemAlgorithm(
 	alpha, beta float64,
 	// TODO convert func to a type
 	trailUpdateFunc func(float64, Graph, Ant),
+	logWriter io.Writer,
 ) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	if len(problemGraph.Vertices) == 0 {
 		return nil, false, fmt.Errorf("problem Graph is empty")
@@ -373,23 +375,10 @@ func AntSystemAlgorithm(
 		}
 	}
 
-	// create file for logging solver progress
-	solverLogFn := "solverlog.csv"
-	solverLogFile, err := os.Create(solverLogFn)
-	if err != nil {
-		err = errors.Wrapf(err, "failed to create solver progress log file: %s", solverLogFn)
-		return nil, false, err
-	}
-	defer func() {
-		err := solverLogFile.Close()
-		if err != nil {
-			// TODO return this errors together with the other return values, wrap the other errors with this one
-			err = errors.Wrapf(err, "failed to close solver progress log file: %s", solverLogFn)
-			fmt.Println(err)
-		}
-	}()
+	// create writer for logging solver progress
+	bufLogWriter := bufio.NewWriter(logWriter)
 
-	nBytesWritten, err := solverLogFile.WriteString("cycle, runtime [ns], min tour len, std dev, avg node branching\n")
+	nBytesWritten, err := bufLogWriter.WriteString("cycle, runtime [ns], min tour len, std dev, avg node branching\n")
 	if err != nil {
 		err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
 		fmt.Println(err)
@@ -481,7 +470,7 @@ func AntSystemAlgorithm(
 			diff := tourLengths[i] - meanTourLength
 			stdDev += diff * diff
 		}
-		stdDev = math.Sqrt( stdDev / float64(nTours) )
+		stdDev = math.Sqrt(stdDev / float64(nTours))
 
 		var avgNodeBranching float64 = 0
 		for vi := range problemGraph.Vertices {
@@ -494,9 +483,17 @@ func AntSystemAlgorithm(
 
 		runDur := time.Now().Sub(startTime)
 
-		nBytesWritten, err := solverLogFile.WriteString(fmt.Sprintf("%d,%d,%f,%f,%f\n", nc, runDur.Nanoseconds(), shortestLength, stdDev, avgNodeBranching))
+		nBytesWritten, err := bufLogWriter.WriteString(fmt.Sprintf("%d,%d,%f,%f,%f\n", nc, runDur.Nanoseconds(), shortestLength, stdDev, avgNodeBranching))
 		if err != nil {
+			// TODO avoid spamming STDOUT
 			err = errors.Wrapf(err, "error while writing to solver progress log; %d bytes written", nBytesWritten)
+			fmt.Println(err)
+		}
+
+		err = bufLogWriter.Flush()
+		if err != nil {
+			// TODO avoid spamming STDOUT
+			err = errors.Wrapf(err, "error while flushing bufLogWriter buffer")
 			fmt.Println(err)
 		}
 
@@ -534,7 +531,7 @@ func AntSystemAlgorithm(
 }
 
 // ASBestParams calls AntSystemAlgorithm with the best parameters found by Dorigo et al 96. page 9 for the ant-cycle algorithm
-func ASBestParams(problemGraph Graph) (shortestTour Tour, stagnationBehaviour bool, err error) {
+func ASBestParams(problemGraph Graph, logWriter io.Writer) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	var nAnts int = len(problemGraph.Vertices)
 	var NCmax int = 5000
 	var Q float64 = 100
@@ -543,5 +540,5 @@ func ASBestParams(problemGraph Graph) (shortestTour Tour, stagnationBehaviour bo
 	var beta float64 = 5
 	trailUpdateFunc := LayTrailAntCycle
 
-	return AntSystemAlgorithm(problemGraph, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc)
+	return AntSystemAlgorithm(problemGraph, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, logWriter)
 }
