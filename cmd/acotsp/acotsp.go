@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"io"
 	"os"
-	"math/rand"
+	"time"
 
 	"bitbucket.org/baobabsoluciones/aco"
 	"bitbucket.org/baobabsoluciones/aco/tsplib"
@@ -24,7 +24,7 @@ func main() {
 	flag.Parse()
 
 	if *seed == 0 {
-		*seed = rand.Int63()
+		*seed = time.Now().UTC().UnixNano()
 	}
 
 	var logWriter io.Writer
