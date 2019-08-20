@@ -161,6 +161,8 @@ type Ant struct {
 	// TODO should Tour be implemented via a (circular) List data structure?
 	// What about loops? how do we terminate a loop looping through a circular list? Elements are unique.
 	TabuList Tour
+	// replicability
+	Rand *rand.Rand
 }
 
 // TODO implement func NewAnt()
@@ -266,7 +268,7 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 		}
 
 		// Select random next position based on prob. dist.
-		r := rand.Float64()
+		r := ant.Rand.Float64()
 		for pi := 0; pi < len(probs)-1; pi++ {
 			if r < probs[pi] {
 				newPos = possVerts[pi]
@@ -346,6 +348,7 @@ func AntSystemAlgorithm(
 	alpha, beta float64,
 	// TODO convert func to a type
 	trailUpdateFunc func(float64, Graph, Ant),
+	seed int64,
 	logWriter io.Writer,
 ) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	if len(problemGraph.Vertices) == 0 {
@@ -386,6 +389,9 @@ func AntSystemAlgorithm(
 
 	// begin the Ant Cycle algorithm
 
+	// replicability
+	rand.Seed(seed)
+
 	// TODO [A#]
 	// t := 0
 
@@ -398,9 +404,11 @@ func AntSystemAlgorithm(
 		for i := 0; i < nAnts; i++ {
 			ants = append(ants, Ant{
 				TabuList: make(Tour, 0, nVertices),
+				// replicability
+				Rand: rand.New(rand.NewSource(rand.Int63())),
 			})
 			newAnt := &ants[i]
-			firstPos := &problemGraph.Vertices[rand.Intn(nVertices)]
+			firstPos := &problemGraph.Vertices[newAnt.Rand.Intn(nVertices)]
 			newAnt.Position = firstPos
 			newAnt.TabuList = append(newAnt.TabuList, firstPos)
 		}
@@ -531,7 +539,7 @@ func AntSystemAlgorithm(
 }
 
 // ASBestParams calls AntSystemAlgorithm with the best parameters found by Dorigo et al 96. page 9 for the ant-cycle algorithm
-func ASBestParams(problemGraph Graph, logWriter io.Writer) (shortestTour Tour, stagnationBehaviour bool, err error) {
+func ASBestParams(problemGraph Graph, seed int64, logWriter io.Writer) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	var nAnts int = len(problemGraph.Vertices)
 	var NCmax int = 5000
 	var Q float64 = 100
@@ -540,5 +548,5 @@ func ASBestParams(problemGraph Graph, logWriter io.Writer) (shortestTour Tour, s
 	var beta float64 = 5
 	trailUpdateFunc := LayTrailAntCycle
 
-	return AntSystemAlgorithm(problemGraph, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, logWriter)
+	return AntSystemAlgorithm(problemGraph, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, logWriter)
 }

@@ -79,8 +79,13 @@ func TestEqualTour(t *testing.T) {
 }
 
 // TODO
+/*
 func TestMoveToNextVertex(t *testing.T) {
+	t.Error("TODO implement")
 }
+*/
+
+// TODO find a way to test replicability
 
 // CheckSolutionValid checks that all Vertices in proglemGraph are visited exactly once.
 func CheckSolutionValid(solution Tour, proglemGraph Graph) error {
@@ -225,6 +230,7 @@ func TestTriangle(t *testing.T) {
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 1
+	var seed int64 = 0
 
 	solution, stagnationBehaviour, err := AntSystemAlgorithm(
 		triangleGraph,
@@ -234,6 +240,7 @@ func TestTriangle(t *testing.T) {
 		rho,
 		alpha, beta,
 		LayTrailAntCycle,
+		seed,
 		os.Stdout,
 	)
 	if err != nil {
@@ -274,9 +281,12 @@ func TestSquare(t *testing.T) {
 		},
 	}
 
+	var seed int64 = 0
+
 	// run AS
 	solution, _, err := ASBestParams(
 		squareGraph,
+		seed,
 		os.Stdout,
 	)
 	if err != nil {
