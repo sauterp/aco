@@ -2,7 +2,6 @@
 package aco
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"testing"
@@ -86,53 +85,6 @@ func TestMoveToNextVertex(t *testing.T) {
 */
 
 // TODO find a way to test replicability
-
-// CheckSolutionValid checks that all Vertices in proglemGraph are visited exactly once.
-func CheckSolutionValid(solution Tour, proglemGraph Graph) error {
-	errMsg := ""
-
-	if len(solution) == 0 {
-		errMsg += "solution is empty"
-	}
-
-	// Check that no pointer is nil
-	solContainsNilPointer := false
-	for vi, v := range solution {
-		if v == nil {
-			solContainsNilPointer = true
-			errMsg += fmt.Sprintf("solution[%d] == nil\n", vi)
-		}
-	}
-
-	if !solContainsNilPointer {
-		// Check that every Vertex is visited exactly once.
-		// Check that all Vertices in solution are really in the problemGraph
-		for vi, v := range solution {
-			for vj := vi + 1; vj < len(solution); vj++ {
-				if v == solution[vj] {
-					errMsg += fmt.Sprintf("Vertex %v appears multiple times in solution\n", *v)
-					break
-				}
-			}
-			vFoundInProblemGraph := false
-			for pgvi := 0; pgvi < len(proglemGraph.Vertices); pgvi++ {
-				if v == &proglemGraph.Vertices[pgvi] {
-					vFoundInProblemGraph = true
-					break
-				}
-			}
-			if !vFoundInProblemGraph {
-				errMsg += fmt.Sprintf("Vertex %v is not in problemGraph\n", *v)
-			}
-		}
-	}
-
-	if errMsg == "" {
-		return nil
-	} else {
-		return fmt.Errorf(errMsg)
-	}
-}
 
 func TestCheckFullyConnected(t *testing.T) {
 	t.Run("OneVertex", func(t *testing.T) {
