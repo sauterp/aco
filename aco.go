@@ -259,7 +259,7 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 				// TODO
 				panic(err)
 			}
-			probs[pi] = math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta) * normFact
+			probs[pi] = math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta) / normFact
 		}
 
 		// sum each element of probs with all preceding elements to get a "ladder"
@@ -272,9 +272,9 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 		for pi := 0; pi < len(probs)-1; pi++ {
 			if r < probs[pi] {
 				newPos = possVerts[pi]
+				break
 			}
 		}
-		// TODO think about this
 		if newPos == nil {
 			newPos = possVerts[len(possVerts)-1]
 		}

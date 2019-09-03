@@ -317,7 +317,7 @@ func TestCompTotLength(t *testing.T) {
 // func BenchmarkGrid(b *testing.B) {
 func TestGrid(b *testing.T) {
 	// TODO generalize to parameter
-	nGridNodesPerDim := 2
+	nGridNodesPerDim := 8
 
 	// For a graph that is an equidistant grid of n x n fully connected vertices with distance d between neighbouring vertices, where n is even, an optimal solution has length: d * n * n.
 	var dist float64 = 1
@@ -328,7 +328,7 @@ func TestGrid(b *testing.T) {
 
 	seed := time.Now().UTC().UnixNano()
 	var nAnts int = len(g.Vertices)
-	var NCmax int = 5000
+	var NCmax int = 10000
 	var Q float64 = 100
 	var rho float64 = 0.5
 	var alpha float64 = 1
