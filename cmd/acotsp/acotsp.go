@@ -68,7 +68,8 @@ func main() {
 			// TODO
 			panic(err)
 		}
-		fmt.Printf("solution: %v", s)
+		fmt.Printf("solution: %v\n", s)
+		fmt.Printf("solution length: %f\n", aco.CompTotLength(g, s))
 		if stagBehv {
 			fmt.Println("AS terminated with stagnation behaviour")
 		}
