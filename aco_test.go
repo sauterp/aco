@@ -3,6 +3,7 @@ package aco
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"testing"
@@ -314,8 +315,8 @@ func TestCompTotLength(t *testing.T) {
 	}
 }
 
-// func BenchmarkGrid(b *testing.B) {
-func TestGrid(b *testing.T) {
+func BenchmarkGrid(b *testing.B) {
+	// func TestGrid(b *testing.T) {
 	// TODO generalize to parameter
 	nGridNodesPerDim := 8
 
@@ -332,13 +333,17 @@ func TestGrid(b *testing.T) {
 	var Q float64 = 100
 	var rho float64 = 0.5
 	var alpha float64 = 1
-	var beta float64 = 5
+	var beta float64 = 100
 	trailUpdateFunc := LayTrailAntCycle
 
-	solution, _, err := AntSystemAlgorithm(g, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, os.Stdout)
+	solution, _, err := AntSystemAlgorithm(g, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, ioutil.Discard)
 	check(err)
-	b.Logf("BestSol %f\n", CompTotLength(g, solution))
+	solLen := CompTotLength(g, solution)
+	b.Logf("BestSol %f\n", solLen)
 	b.Logf("OptSol %f\n", optLen)
 
-	b.Fail()
+	epsilon := 0.0000001
+	if solLen < optLen-epsilon || solLen > optLen+epsilon {
+		b.Fail()
+	}
 }
