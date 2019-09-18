@@ -259,7 +259,7 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 				// TODO
 				panic(err)
 			}
-			probs[pi] = math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta) * normFact
+			probs[pi] = math.Pow(edge.TrailIntensity, alpha) * math.Pow(edge.Visibility, beta) / normFact
 		}
 
 		// sum each element of probs with all preceding elements to get a "ladder"
@@ -272,6 +272,7 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 		for pi := 0; pi < len(probs)-1; pi++ {
 			if r < probs[pi] {
 				newPos = possVerts[pi]
+				break
 			}
 		}
 		if newPos == nil {
@@ -287,7 +288,7 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 
 // CompTotTourLen computes the total length of this ant's tour
 func CompTotLength(graph Graph, tour Tour) float64 {
-	totLength := 0.0
+	var totLength float64 = 0
 	for i := 0; i < len(tour)-1; i++ {
 		edge, err := graph.GetEdge(tour[i].Index, tour[i+1].Index)
 		if err != nil {
@@ -378,6 +379,16 @@ func CheckSolutionValid(solution Tour, proglemGraph Graph) error {
 	} else {
 		return fmt.Errorf(errMsg)
 	}
+}
+
+func CompTotPhermone(g Graph) float64 {
+	var totPher float64 = 0
+	for ei := 0; ei < len(g.Edges); ei++ {
+		for ej := 0; ej < len(g.Edges[ei]); ej++ {
+			totPher += g.Edges[ei][ej].TrailIntensity
+		}
+	}
+	return totPher
 }
 
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
@@ -504,7 +515,6 @@ func AntSystemAlgorithm(
 		shortestLength := CompTotLength(problemGraph, shortestTour)
 		for i := 0; i < len(ants); i++ {
 			totLength := CompTotLength(problemGraph, ants[i].TabuList)
-
 			tourLengths[i] = totLength
 
 			if totLength < shortestLength {

@@ -1,0 +1,1 @@
+This branch follows the implementation of the Ant System Algorithm as described in Dorigo et al. 96.

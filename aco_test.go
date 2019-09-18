@@ -2,9 +2,12 @@
 package aco
 
 import (
+	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"testing"
+	"time"
 )
 
 func check(e error) {
@@ -262,5 +265,85 @@ func TestSquare(t *testing.T) {
 	solTotLen := CompTotLength(squareGraph, solution)
 	if solTotLen > 4.5 {
 		t.Errorf("want total length ~= 4.0\ngot total length == %f\n", solTotLen)
+	}
+}
+
+func generateGridGraph(nGridNodesPerDim int, dist float64) Graph {
+	nGridNodes := nGridNodesPerDim * nGridNodesPerDim
+	g := Graph{
+		Vertices: make([]Vertex, nGridNodes),
+		Edges:    make([][]Edge, nGridNodes),
+	}
+	for vx := 0; vx < nGridNodesPerDim; vx++ {
+		for vy := 0; vy < nGridNodesPerDim; vy++ {
+			v := vx*nGridNodesPerDim + vy
+			g.Vertices[v].Index = v
+			g.Vertices[v].Label = fmt.Sprintf("%d", v)
+			g.Edges[v] = make([]Edge, v)
+			for e := 0; e < v; e++ {
+				aX := float64(vx) * dist
+				aY := float64(vy) * dist
+				bX := float64(g.Vertices[e].Index/nGridNodesPerDim) * dist
+				bY := float64(g.Vertices[e].Index%nGridNodesPerDim) * dist
+				g.Edges[v][e].Length = CompEuclid2dDist(aX, aY, bX, bY)
+			}
+		}
+	}
+	return g
+}
+
+func TestCompTotLength(t *testing.T) {
+	nGridNodesPerDim := 4
+	var dist float64 = 10
+	// For a graph that is an equidistant grid of n x n fully connected vertices with distance d between neighbouring vertices, where n is even, an optimal solution has length: d * n * n.
+
+	g := generateGridGraph(nGridNodesPerDim, dist)
+
+	gv := func(i int) *Vertex {
+		return &g.Vertices[i]
+	}
+	optSol := Tour{
+		gv(0), gv(4), gv(8), gv(12),
+		gv(13), gv(9), gv(10), gv(14),
+		gv(15), gv(11), gv(7), gv(3),
+		gv(2), gv(6), gv(5), gv(1),
+	}
+
+	optSolLenInt := int(CompTotLength(g, optSol))
+	if optSolLenInt != 160 {
+		t.Errorf("want: %d\ngot: %d\n", 160, optSolLenInt)
+	}
+}
+
+func BenchmarkGrid(b *testing.B) {
+	// func TestGrid(b *testing.T) {
+	// TODO generalize to parameter
+	nGridNodesPerDim := 8
+
+	// For a graph that is an equidistant grid of n x n fully connected vertices with distance d between neighbouring vertices, where n is even, an optimal solution has length: d * n * n.
+	var dist float64 = 1
+	optLen := dist * float64(nGridNodesPerDim*nGridNodesPerDim)
+
+	// generate grid
+	g := generateGridGraph(nGridNodesPerDim, dist)
+
+	seed := time.Now().UTC().UnixNano()
+	var nAnts int = len(g.Vertices)
+	var NCmax int = 10000
+	var Q float64 = 100
+	var rho float64 = 0.5
+	var alpha float64 = 1
+	var beta float64 = 100
+	trailUpdateFunc := LayTrailAntCycle
+
+	solution, _, err := AntSystemAlgorithm(g, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, ioutil.Discard)
+	check(err)
+	solLen := CompTotLength(g, solution)
+	b.Logf("BestSol %f\n", solLen)
+	b.Logf("OptSol %f\n", optLen)
+
+	epsilon := 0.0000001
+	if solLen < optLen-epsilon || solLen > optLen+epsilon {
+		b.Fail()
 	}
 }
