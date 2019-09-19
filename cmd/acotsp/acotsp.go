@@ -16,7 +16,7 @@ import (
 
 var (
 	tsp = flag.String("tsp", "", "TSP problem file in TSPLIB format")
-	log = flag.String("log", "", "file where progress should be logged")
+	log = flag.String("log", "", "(optional)file where progress should be logged")
 	seed = flag.Int64("seed", 0, "random seed for the algorithm; if 0 or unset a random seed will be generated; same seed and TSP problem will result in the same solution")
 	alpha = flag.Float64("alpha", 1, "alpha and beta control the relative importance of trail versus visibility.")
 	beta = flag.Float64("beta", 5, "alpha and beta control the relative importance of trail versus visibility.")
@@ -36,7 +36,6 @@ func main() {
 	var logWriter io.Writer
 
 	if *log == "" {
-		fmt.Println("-log flag not specified; solver progress will not be logged")
 		logWriter = ioutil.Discard
 	} else {
 		logFile, err := os.Create(*log)

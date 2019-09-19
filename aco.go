@@ -562,13 +562,6 @@ func AntSystemAlgorithm(
 			fmt.Println(err)
 		}
 
-		// TODO print at appropriate intervals based on Estimated Maximum Time until Termination
-		for m := 0; m < 1000; m++ {
-			if nc == m*1000 {
-				fmt.Printf("runtime: %dns; min tour len: %f\n", runDur.Nanoseconds(), shortestLength)
-			}
-		}
-
 		// if all ants did the same tour, abort, stagnation behaviour, no alternative solutions will be explored
 		// TODO see whether this loop can be optimized by not creating any goroutines as soon as <-quit
 		// TODO introduce concurrency
