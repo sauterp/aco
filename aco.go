@@ -425,6 +425,7 @@ func AntSystemAlgorithm(
 	// TODO convert func to a type
 	trailUpdateFunc func(float64, Graph, Ant),
 	seed int64,
+	terminateOnStagnation bool,
 	logWriter io.Writer,
 ) (shortestTour Tour, stagnationBehaviour bool, err error) {
 	if len(problemGraph.Vertices) == 0 {
@@ -583,26 +584,28 @@ func AntSystemAlgorithm(
 			fmt.Println(err)
 		}
 
-		// if all ants did the same tour, abort, stagnation behaviour, no alternative solutions will be explored
-		// TODO see whether this loop can be optimized by not creating any goroutines as soon as <-quit
-		// TODO introduce concurrency
-		stagnationBehaviour := true
-		for i := 0; i < nAnts; i++ {
-			for j := i + 1; j < nAnts; j++ {
-				// if two ants have differing tours, all other comparisons can be aborted
-				if !EqualTour(ants[i].TabuList, ants[j].TabuList) {
-					stagnationBehaviour = false
+		if terminateOnStagnation {
+			// if all ants did the same tour, abort, stagnation behaviour, no alternative solutions will be explored
+			// TODO see whether this loop can be optimized by not creating any goroutines as soon as <-quit
+			// TODO introduce concurrency
+			stagnationBehaviour := true
+			for i := 0; i < nAnts; i++ {
+				for j := i + 1; j < nAnts; j++ {
+					// if two ants have differing tours, all other comparisons can be aborted
+					if !EqualTour(ants[i].TabuList, ants[j].TabuList) {
+						stagnationBehaviour = false
+						break
+					}
+				}
+				if !stagnationBehaviour {
 					break
 				}
 			}
-			if !stagnationBehaviour {
-				break
+	
+			if stagnationBehaviour {
+				// TODO think about whether it makes sense to return information about when stangnation behaviour started
+				return shortestTour, stagnationBehaviour, nil
 			}
-		}
-
-		if stagnationBehaviour {
-			// TODO think about whether it makes sense to return information about when stangnation behaviour started
-			return shortestTour, stagnationBehaviour, nil
 		}
 	}
 	stagnationBehaviour = false
@@ -617,7 +620,8 @@ func ASBestParams(problemGraph Graph, seed int64, logWriter io.Writer) (shortest
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 5
+	var terminateOnStagnation bool = true
 	trailUpdateFunc := LayTrailAntCycle
 
-	return AntSystemAlgorithm(problemGraph, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, logWriter)
+	return AntSystemAlgorithm(problemGraph, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, terminateOnStagnation, logWriter)
 }

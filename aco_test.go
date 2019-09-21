@@ -215,6 +215,7 @@ func TestTriangle(t *testing.T) {
 	var alpha float64 = 1
 	var beta float64 = 1
 	var seed int64 = 0
+	var terminateOnStagnation bool = true
 
 	solution, stagnationBehaviour, err := AntSystemAlgorithm(
 		triangleGraph,
@@ -225,6 +226,7 @@ func TestTriangle(t *testing.T) {
 		alpha, beta,
 		LayTrailAntCycle,
 		seed,
+		terminateOnStagnation,
 		os.Stdout,
 	)
 	if err != nil {
@@ -363,9 +365,10 @@ func BenchmarkGrid(b *testing.B) {
 	var rho float64 = 0.5
 	var alpha float64 = 1
 	var beta float64 = 100
+	var terminateOnStagnation bool = true
 	trailUpdateFunc := LayTrailAntCycle
 
-	solution, _, err := AntSystemAlgorithm(g, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, ioutil.Discard)
+	solution, _, err := AntSystemAlgorithm(g, nAnts, NCmax, Q, rho, alpha, beta, trailUpdateFunc, seed, terminateOnStagnation, ioutil.Discard)
 	check(err)
 	solLen := CompTotLength(g, solution)
 	b.Logf("BestSol %f\n", solLen)
