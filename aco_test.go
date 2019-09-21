@@ -80,6 +80,35 @@ func TestEqualTour(t *testing.T) {
 	})
 }
 
+func TestCloneGraph(t *testing.T) {
+	// create triangle graph
+	g := Graph{
+		Vertices: []Vertex{
+			{0, "0"},
+			{1, "1"},
+			{2, "2"},
+		},
+		Edges: [][]Edge{
+			{},
+			{{1, 1, 0}},
+			{{1, 1, 0}, {1, 1, 0}},
+		},
+	}
+
+	clonedG := cloneGraph(g)
+
+	for i := 0; i < len(g.Vertices); i++ {
+		if g.Vertices[i] != clonedG.Vertices[i] {
+			t.Fail()
+		}
+		for j := 0; j < len(g.Edges[i]); j++ {
+			if g.Edges[i][j] != clonedG.Edges[i][j] {
+				t.Fail()
+			}
+		}
+	}
+}
+
 // TODO
 /*
 func TestMoveToNextVertex(t *testing.T) {

@@ -24,6 +24,23 @@ type Graph struct {
 	Edges [][]Edge
 }
 
+// TODO separate TrailIntensity from the Graph data structure, so that this function is not necessary.
+// cloneGraph creates an copy of Graph g that shares the Vertices with the original but has a different copy of edges. This is to make it possible to call AntSystemAlgorithm concurrently. The copy of the Edges is necessary so that each instance of AS has it's own pheromone trails while the created solutions point to the same Vertices as the user of AS has.
+// This function is deliberately not exported to avoid confusion.
+func cloneGraph(g Graph) Graph {
+	NewGraph := Graph{
+		Vertices: g.Vertices,
+		Edges: make([][]Edge, len(g.Edges)),
+	}
+
+	for i := 0; i < len(g.Edges); i++ {
+		NewGraph.Edges[i] = make([]Edge, len(g.Edges[i]))
+		copy(NewGraph.Edges[i], g.Edges[i])
+	}
+
+	return NewGraph
+}
+
 // GetEdge retrieves the edge (vi, vj) from graph.Edges where vi and vj are Vertex.Index.
 // GetEdge(vi, vj) == GetEdge(vj, vi)
 func (graph *Graph) GetEdge(vi, vj int) (*Edge, error) {
@@ -392,6 +409,7 @@ func CompTotPhermone(g Graph) float64 {
 }
 
 // AntSystemAlgorithm is the main method for initiating the Ant System algorithm
+// It can be called concurrently.
 func AntSystemAlgorithm(
 	problemGraph Graph,
 	nAnts int,
@@ -425,6 +443,9 @@ func AntSystemAlgorithm(
 	if err != nil {
 		return nil, false, err
 	}
+
+	// To ensure AS can be called concurrently we make a local copy of problemGraph
+	problemGraph = cloneGraph(problemGraph)
 
 	// compute Visibility of all Edges
 	// set all TrailIntensities to rho
