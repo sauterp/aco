@@ -223,18 +223,25 @@ func TestSquare(t *testing.T) {
 	// create square graph
 	squareGraph := Graph{
 		Vertices: []Vertex{
+			// It would have been more intuitive if the square vertices were label as this:
+			// 0	1
+			// 2	3
+			// instead of
+			// 0	1
+			// 3	2
 			{0, "0"},
 			{1, "1"},
-			{2, "2"},
+			{2, "3"},
 			{3, "2"},
 		},
-		Edges: [][]Edge{
+		Edges: [][]Edge{ //This needs a propper explanation
 			{},
 			{{1, 1, 0}},
 			{{sqrt2, invSqrt2, 0}, {1, 1, 0}},
 			{{1, 1, 0}, {sqrt2, invSqrt2, 0}, {1, 1, 0}},
 		},
 	}
+	fmt.Println(squareGraph)
 
 	var seed int64 = 0
 
@@ -244,6 +251,10 @@ func TestSquare(t *testing.T) {
 		seed,
 		os.Stdout,
 	)
+	for i := 0; i < len(solution); i++ {
+		fmt.Println(*solution[i])
+	}
+
 	if err != nil {
 		t.Error(err)
 	}
@@ -268,6 +279,7 @@ func TestSquare(t *testing.T) {
 	}
 }
 
+// This function generates a Graph representing a equidistant grid of nxn
 func generateGridGraph(nGridNodesPerDim int, dist float64) Graph {
 	nGridNodes := nGridNodesPerDim * nGridNodesPerDim
 	g := Graph{
@@ -292,10 +304,12 @@ func generateGridGraph(nGridNodesPerDim int, dist float64) Graph {
 	return g
 }
 
+// TestCompTotLength checks whether the function CompTotLength returns the rigth length
 func TestCompTotLength(t *testing.T) {
 	nGridNodesPerDim := 4
 	var dist float64 = 10
-	// For a graph that is an equidistant grid of n x n fully connected vertices with distance d between neighbouring vertices, where n is even, an optimal solution has length: d * n * n.
+	// For a graph that is an equidistant grid of n x n fully connected vertices with distance d between
+	// neighbouring vertices, where n is even, an optimal solution has length: d * n * n.
 
 	g := generateGridGraph(nGridNodesPerDim, dist)
 
@@ -320,7 +334,8 @@ func BenchmarkGrid(b *testing.B) {
 	// TODO generalize to parameter
 	nGridNodesPerDim := 8
 
-	// For a graph that is an equidistant grid of n x n fully connected vertices with distance d between neighbouring vertices, where n is even, an optimal solution has length: d * n * n.
+	// For a graph that is an equidistant grid of n x n fully connected vertices with distance d between
+	// neighbouring vertices, where n is even, an optimal solution has length: d * n * n.
 	var dist float64 = 1
 	optLen := dist * float64(nGridNodesPerDim*nGridNodesPerDim)
 
@@ -343,7 +358,8 @@ func BenchmarkGrid(b *testing.B) {
 	b.Logf("OptSol %f\n", optLen)
 
 	epsilon := 0.0000001
-	if solLen < optLen-epsilon || solLen > optLen+epsilon {
+	if solLen < optLen-epsilon || solLen > optLen+epsilon { 
+		// Why not if solLen != optLen
 		b.Fail()
 	}
 }

@@ -1,1 +1,2 @@
 This branch follows the implementation of the Ant System Algorithm as described in Dorigo et al. 96.
+You cand find documentation about this algorithm in G:\Unidades compartidas\InternoRecursos\tecnico\inv_operativa\tecnicas\aco

@@ -1,4 +1,4 @@
-// package aco provides the Ant System algorithm according to Dorigo, Maniezzo and Colorni 1996:
+// Package aco provides the Ant System algorithm according to Dorigo, Maniezzo and Colorni 1996:
 // The Ant System: Optimization by a colony of cooperating agents
 // Marco Dorigo, Vittorio Maniezzo and Alberto Colorni
 // IEEE Transactions on Systems, Man, and Cybernetics–Part B, Vol.26, No.1, 1996, pp.1-13
@@ -24,7 +24,23 @@ type Graph struct {
 	Edges [][]Edge
 }
 
-// GetEdge retrieves the edge (vi, vj) from graph.Edges where vi and vj are Vertex.Index.
+// Vertex holds the integer index used to address the rows in the Graph.Edges matrix and a string Label.
+type Vertex struct {
+	Index int
+	// Label has no meaning to the Ant System algorithm it is only used to output the result.
+	Label string
+}
+
+// Edge holds one edge of a Graph with Length information
+type Edge struct {
+	Length float64
+	// Visibility increases the chance that an Ant takes this Edge. Usually Visibility = 1.0 / Length
+	Visibility float64 // Will be overwritten by Ant System Algorithm
+	// TODO TrailIntensity definition.
+	TrailIntensity float64 // Will be overwritten by Ant System Algorithm
+}
+
+// GetEdge retrieves the edge (vi, vj) from Graph.Edges where vi and vj are Vertex.Index.
 // GetEdge(vi, vj) == GetEdge(vj, vi)
 func (graph *Graph) GetEdge(vi, vj int) (*Edge, error) {
 	switch {
@@ -36,18 +52,12 @@ func (graph *Graph) GetEdge(vi, vj int) (*Edge, error) {
 		return &graph.Edges[vj][vi], nil
 	default:
 		return nil, fmt.Errorf("this error should be impossible; none of the cases vi == vj, vj < vi or vj > vi have evaluated to true")
+		// I wouldn't add code for impossible scenarios.
 	}
 }
 
-// Vertex holds the integer index used to address the rows in the Graph.Edges matrix and a string Label.
-type Vertex struct {
-	Index int
-	// Label has no meaning to the Ant System algorithm it is only used to output the result.
-	Label string
-}
-
-// TODO can this be optimized?
 // GetOutEdges returns a list of pointers to all Edges exiting from Vertex v
+// TODO can this be optimized?
 func (v *Vertex) GetOutEdges(g Graph) []*Edge {
 	// since g is fully connected without cyclical Edges, we can expect nVertices - 1 outgoing Edges
 	outEdges := make([]*Edge, 0, len(g.Vertices)-1)
@@ -67,11 +77,9 @@ func (v *Vertex) GetOutEdges(g Graph) []*Edge {
 	return outEdges
 }
 
-// Only used by CompNodeBranching
-const epsilon = 0.000000000001
-
 // CompNodeBranching computes the number of outgoing edges of Vertex v with a TrailIntensity > epsilon
 func (v *Vertex) CompNodeBranching(g Graph) (nodeBranching int) {
+	const epsilon = 0.000000000001
 	outEdges := v.GetOutEdges(g)
 	nodeBranching = 0
 	for _, e := range outEdges {
@@ -82,14 +90,6 @@ func (v *Vertex) CompNodeBranching(g Graph) (nodeBranching int) {
 	return nodeBranching
 }
 
-// Edge holds one edge of a Graph with Length information
-type Edge struct {
-	Length float64
-	// Visibility increases the chance that an Ant takes this Edge. Usually Visibility = 1.0 / Length
-	Visibility     float64 // Will be overwritten by Ant System Algorithm
-	TrailIntensity float64 // Will be overwritten by Ant System Algorithm
-}
-
 // CompEuclid2dDist computes the euclidean distance between two 2 dimensional points a and b.
 func CompEuclid2dDist(aX, aY, bX, bY float64) float64 {
 	abXdist := aX - bX
@@ -98,6 +98,7 @@ func CompEuclid2dDist(aX, aY, bX, bY float64) float64 {
 	return dist
 }
 
+// Tour TODO Not commented
 type Tour []*Vertex
 
 // EqualTour returns true if both tours contain the same vertices, in the same order and have the same total number of vertices
@@ -108,8 +109,7 @@ func EqualTour(a, b Tour) bool {
 
 	// check whether a and b contain the same vertices and that they are in the same order
 	// find the first two elements that point to the same Vertex
-	var eqInd int
-	// indicates whether an element pointing to the same Vertex has ben found in each of the list.
+	var eqInd int // indicates whether an element pointing to the same Vertex has ben found in each of the list.
 	eqElFound := false
 	for i := 0; i < len(a); i++ {
 		if a[0] == b[i] {
@@ -133,22 +133,21 @@ func EqualTour(a, b Tour) bool {
 		}
 		if toursForwardEqual {
 			return true
-		} else {
-			// same procedure in reverse
-			toursReverseEqual := true
-			bOffset = eqInd
-			for i := 0; i < len(a); i++ {
-				// if the last element of b has been reached, continue comparing from the first element onwards
-				if bOffset-i < 0 {
-					bOffset = len(a) + bOffset
-				}
-				if a[i] != b[bOffset-i] {
-					toursReverseEqual = false
-					break
-				}
-			}
-			return toursReverseEqual
 		}
+		// same procedure in reverse
+		toursReverseEqual := true
+		bOffset = eqInd
+		for i := 0; i < len(a); i++ {
+			// if the last element of b has been reached, continue comparing from the first element onwards
+			if bOffset-i < 0 {
+				bOffset = len(a) + bOffset
+			}
+			if a[i] != b[bOffset-i] {
+				toursReverseEqual = false
+				break
+			}
+		}
+		return toursReverseEqual
 	}
 	return false
 }
@@ -170,6 +169,8 @@ type Ant struct {
 
 // TODO generalize together with initialization
 // TODO you can probably delete this
+
+// EmptyTabuList TODO not commented
 func (ant *Ant) EmptyTabuList() {
 	// TODO ant.TabuList = make(Tour, 0, nVertices)
 	ant.TabuList = make(Tour, 0)
@@ -202,9 +203,9 @@ func CheckFullyConnected(graph Graph) error {
 
 	if errMsg != "" {
 		return fmt.Errorf(errMsg)
-	} else {
-		return nil
 	}
+	return nil
+
 }
 
 // MoveToNextVertex chooses the town to go to with a probability that is a function of the town distance and of the amount of trail present on the connecting edge
@@ -286,7 +287,7 @@ func (ant *Ant) MoveToNextVertex(alpha, beta float64, graph Graph) error {
 	return nil
 }
 
-// CompTotTourLen computes the total length of this ant's tour
+// CompTotLength computes the total length of this ant's tour
 func CompTotLength(graph Graph, tour Tour) float64 {
 	var totLength float64 = 0
 	for i := 0; i < len(tour)-1; i++ {
@@ -310,10 +311,11 @@ func CompTotLength(graph Graph, tour Tour) float64 {
 }
 
 // LayTrailAntCycle when ant completes a tour, it lays a substance called trail on each edge visited.
-// This is the main procedure used in the publication, referred to as ant-cycle, but they also proposed two alternatives LayTrailAntDensity and LayTrailAntQuantity on page 8
-// TODO [#B] This computation needs to be done concurrently without race conditions
+// This is the main procedure used in the publication, referred to as ant-cycle, but they also proposed two alternatives
+// LayTrailAntDensity and LayTrailAntQuantity on page 8
+// TODO [#B] This computation needs to be done concurrently without race conditions JSR What is race conditions?
 func LayTrailAntCycle(Q float64, graph Graph, ant Ant) {
-	L_k := CompTotLength(graph, ant.TabuList)
+	LK := CompTotLength(graph, ant.TabuList)
 	for i := 0; i < len(ant.TabuList)-1; i++ {
 		v := ant.TabuList[i].Index
 		vNext := ant.TabuList[i+1].Index
@@ -322,7 +324,7 @@ func LayTrailAntCycle(Q float64, graph Graph, ant Ant) {
 			// TODO
 			panic(err)
 		}
-		edge.TrailIntensity += Q / L_k
+		edge.TrailIntensity += Q / LK
 	}
 	firstV := ant.TabuList[0].Index
 	lastV := ant.TabuList[len(ant.TabuList)-1].Index
@@ -331,7 +333,7 @@ func LayTrailAntCycle(Q float64, graph Graph, ant Ant) {
 		// TODO
 		panic(err)
 	}
-	edge.TrailIntensity += Q / L_k
+	edge.TrailIntensity += Q / LK
 }
 
 // CheckSolutionValid checks that all Vertices in proglemGraph are visited exactly once.
@@ -376,11 +378,12 @@ func CheckSolutionValid(solution Tour, proglemGraph Graph) error {
 
 	if errMsg == "" {
 		return nil
-	} else {
-		return fmt.Errorf(errMsg)
 	}
+	return fmt.Errorf(errMsg)
+
 }
 
+// CompTotPhermone TODO comment
 func CompTotPhermone(g Graph) float64 {
 	var totPher float64 = 0
 	for ei := 0; ei < len(g.Edges); ei++ {
