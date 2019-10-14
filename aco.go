@@ -21,6 +21,23 @@ type Graph struct {
 	Vertices []Vertex
 	// n := len(Vertices)
 	// In a fully connected graph that is used to look up the edges connected to a Vertex very frequently, the most efficient way to store the Edges is by means of an triangular adjacency matrix.
+	// Since circular edges don't make sense in a TSP this matrix should not have a diagonal.
+	// Lets denote the indices Edges[vi][vj].
+	/* Initialization example:
+	g := Graph{
+		Vertices: []Vertex{
+			{0, "0"},
+			{1, "1"},
+			{2, "2"},
+		},
+		// Only the lower triangle of the matrix is relevant, the other cells are ignored by GetEdges and the corresponding element from the lower matrix is returned.
+		Edges: [][]Edge{
+			{},
+			{{1, 1, 0}},
+			{{1, 1, 0}, {1, 1, 0}},
+		},
+	}
+	*/
 	Edges [][]Edge
 }
 
