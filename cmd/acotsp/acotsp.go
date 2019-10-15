@@ -14,10 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Configuration of the case
+
 var (
-	tsp  = flag.String("tsp", "C:/Users/Jaime_bob/Documents/GIT-Bitbucket/aco/cmd/acotsp/jaime_test/js_example.tsp", "TSP problem file in TSPLIB format") // Example iberia
-	log  = flag.String("log", "C:/Users/Jaime_bob/Documents/GIT-Bitbucket/aco/cmd/acotsp/jaime_test/log.txt", "file where progress should be logged")
+	tsp  = flag.String("tsp", "", "TSP problem file in TSPLIB format") 
+	log  = flag.String("log", "", "file where progress should be logged")
 	seed = flag.Int64("seed", 0, "random seed for the algorithm; if 0 or unset a random seed will be generated; same seed and TSP problem will result in the same solution")
 )
 

@@ -48,11 +48,8 @@ func (graph *Graph) GetEdge(vi, vj int) (*Edge, error) {
 		return nil, fmt.Errorf("vi == vj == %d; graph should not have circular Edges", vi)
 	case vj < vi:
 		return &graph.Edges[vi][vj], nil
-	case vj > vi:
-		return &graph.Edges[vj][vi], nil
 	default:
-		return nil, fmt.Errorf("this error should be impossible; none of the cases vi == vj, vj < vi or vj > vi have evaluated to true")
-		// I wouldn't add code for impossible scenarios.
+		return &graph.Edges[vj][vi], nil
 	}
 }
 
@@ -109,7 +106,8 @@ func EqualTour(a, b Tour) bool {
 
 	// check whether a and b contain the same vertices and that they are in the same order
 	// find the first two elements that point to the same Vertex
-	var eqInd int // indicates whether an element pointing to the same Vertex has ben found in each of the list.
+	var eqInd int
+	// indicates whether an element pointing to the same Vertex has ben found in each of the list.
 	eqElFound := false
 	for i := 0; i < len(a); i++ {
 		if a[0] == b[i] {
@@ -313,7 +311,7 @@ func CompTotLength(graph Graph, tour Tour) float64 {
 // LayTrailAntCycle when ant completes a tour, it lays a substance called trail on each edge visited.
 // This is the main procedure used in the publication, referred to as ant-cycle, but they also proposed two alternatives
 // LayTrailAntDensity and LayTrailAntQuantity on page 8
-// TODO [#B] This computation needs to be done concurrently without race conditions JSR What is race conditions?
+// TODO [#B] This computation needs to be done concurrently without race conditions
 func LayTrailAntCycle(Q float64, graph Graph, ant Ant) {
 	LK := CompTotLength(graph, ant.TabuList)
 	for i := 0; i < len(ant.TabuList)-1; i++ {

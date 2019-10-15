@@ -234,7 +234,7 @@ func TestSquare(t *testing.T) {
 			{2, "3"},
 			{3, "2"},
 		},
-		Edges: [][]Edge{ //This needs a propper explanation
+		Edges: [][]Edge{
 			{},
 			{{1, 1, 0}},
 			{{sqrt2, invSqrt2, 0}, {1, 1, 0}},
@@ -358,8 +358,7 @@ func BenchmarkGrid(b *testing.B) {
 	b.Logf("OptSol %f\n", optLen)
 
 	epsilon := 0.0000001
-	if solLen < optLen-epsilon || solLen > optLen+epsilon { 
-		// Why not if solLen != optLen
+	if solLen < optLen-epsilon || solLen > optLen+epsilon {
 		b.Fail()
 	}
 }
