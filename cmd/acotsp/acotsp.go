@@ -4,8 +4,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"io"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -13,6 +13,7 @@ import (
 	"bitbucket.org/baobabsoluciones/aco/tsplib"
 	"github.com/pkg/errors"
 )
+
 
 var (
 	tsp = flag.String("tsp", "", "TSP problem file in TSPLIB format")
@@ -72,21 +73,20 @@ func main() {
 		var nAnts int = len(g.Vertices)
 		trailUpdateFunc := aco.LayTrailAntCycle
 
-		s, _, err := aco.AntSystemAlgorithm(g, nAnts, *NCmax, *Q, *rho, *alpha, *beta, trailUpdateFunc, *seed, logWriter)
+		s, stagBehv, err := aco.AntSystemAlgorithm(g, nAnts, *NCmax, *Q, *rho, *alpha, *beta, trailUpdateFunc, *seed, logWriter)
 		if err != nil {
 			// TODO
 			panic(err)
 		}
 
-		fmt.Printf("%d,%f,%f,%f,%f,%f\n", *NCmax, *Q, *rho, *alpha, *beta, aco.CompTotLength(g, s))
+		fmt.Printf("solution: \n")
+		for i := 0; i < len(s); i++ {
+			fmt.Println(*(s[i]))
+		}
 
-		//TODO find a good ouptut format
-		/*
-		fmt.Printf("solution: %v\n", s)
 		fmt.Printf("solution length: %f\n", aco.CompTotLength(g, s))
 		if stagBehv {
 			fmt.Println("AS terminated with stagnation behaviour")
 		}
-		*/
 	}
 }
