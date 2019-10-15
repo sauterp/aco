@@ -19,11 +19,11 @@ import (
 
 var (
 	// X TODO comment
-	X = flag.Int("X", 1, "column to be plotted on X axis(first column is 0)")
+	X = flag.Int("X", -1, "column to be plotted on X axis(first column is 0)")
 	// Y TODO comment
-	Y     = flag.Int("Y", 2, "column to be plotted on Y axis(first column is 0)")
-	i     = flag.String("i", "C:/Users/Jaime_bob/Documents/GIT-Bitbucket/aco/cmd/acotsp/jaime_test/solution.txt", "name of the input file containing CSV formated data, the columns you want to parse need to be convertible to float64")
-	o     = flag.String("o", "C:/Users/Jaime_bob/Documents/GIT-Bitbucket/aco/cmd/acotsp/jaime_test/sol.png", "name of the file where the PNG containing the plot should be saved")
+	Y     = flag.Int("Y", -1, "column to be plotted on Y axis(first column is 0)")
+	i     = flag.String("i", "", "name of the input file containing CSV formated data, the columns you want to parse need to be convertible to float64")
+	o     = flag.String("o", "", "name of the file where the PNG containing the plot should be saved")
 	title = flag.String("title", "Prblem", "title of the plot (optional)")
 )
 
